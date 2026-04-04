@@ -34,3 +34,8 @@ export function onTabFromRight(state: TwoPaneFocusState): TwoPaneFocusState {
   return { ...state, owner: 'left' };
 }
 
+export function onCtrlBToggle(state: TwoPaneFocusState): TwoPaneFocusState {
+  if (!state.rightPaneVisible) return state;
+  return { ...state, owner: state.owner === 'left' ? 'right' : 'left' };
+}
+

@@ -14,6 +14,37 @@ import {
 
 const OUTPUT_BUFFER_CEILING = 64 * 1024;
 
+/**
+ * Strip VT100 Claude Code-movement and other non-SGR escape sequences from PTY
+ * output so the raw text can be rendered by <Ansi> which only understands
+ * SGR color/style codes.
+ *
+ * We keep SGR codes (\x1b[...m) and OSC title sequences because <Ansi>
+ * handles those. We strip:
+ *   - Cursor movement / erase: \x1b[...A/B/C/D/E/F/G/H/J/K/S/T
+ *   - Absolute position:        \x1b[row;colH  \x1b[row;colf
+ *   - Set mode / private:       \x1b[...h  \x1b[...l  \x1b[?...h/l
+ *   - Clear screen shorthand:   \x1b[2J  \x1b[3J  \x1bc
+ *   - OSC title (drop them):    \x1b]...\x07 or \x1b]...\x1b\\
+ *   - Single-char escapes:      \x1bM (reverse line feed)
+ *   - Carriage return (\r) alone (overwrite mode — keep the newline if present)
+ */
+function stripCursorSequences(data: string): string {
+  return (
+    data
+      // OSC sequences (title sets, etc.) — strip entirely
+      .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '')
+      // CSI sequences that are NOT SGR (not ending in 'm')
+      // SGR ends in 'm'; we keep those. Strip everything else.
+      .replace(/\x1b\[[\x30-\x3f]*[\x20-\x2f]*[A-LN-Za-z]/g, '')
+      // Single-char escape sequences (e.g. \x1bM = reverse linefeed)
+      .replace(/\x1b[^[\]]/g, '')
+      // \r not followed by \n — carriage return without newline overwrites the
+      // current line; just drop it to avoid garbled output
+      .replace(/\r(?!\n)/g, '')
+  );
+}
+
 export interface TerminalPanelProps {
   visible?: boolean;
   focused?: boolean;
@@ -63,7 +94,8 @@ export function TerminalPanel({
         });
 
         setLines(prevLines => {
-          const merged = (prevLines.join('\n') + event.data).slice(
+          const cleaned = stripCursorSequences(event.data);
+          const merged = (prevLines.join('\n') + cleaned).slice(
             -OUTPUT_BUFFER_CEILING,
           );
           return merged.split('\n');
@@ -134,14 +166,22 @@ export function TerminalPanel({
   useInput((input, key, event) => {
     if (!panelFocused) return;
     event.stopImmediatePropagation();
-    if (key.return) {
+    if (key.ctrl && input === 'b') {
+      onRequestBlur?.();
+    } else if (key.wheelUp) {
+      scrollRef.current?.scrollBy(-3);
+    } else if (key.wheelDown) {
+      scrollRef.current?.scrollBy(3);
+    } else if (key.ctrl && input === 'c') {
+      managerRef.current.signal('sigint');
+    } else if (key.ctrl && input === 'd') {
+      void terminalPanelWrite('\x04');
+    } else if (key.ctrl && input === 'z') {
+      managerRef.current.signal('sigstop');
+    } else if (key.return) {
       void terminalPanelWrite('\r');
     } else if (key.tab) {
-      if (isControlledFocus) {
-        onRequestBlur?.();
-      } else {
-        void terminalPanelWrite('\t');
-      }
+      void terminalPanelWrite('\t');
     } else if (key.backspace || key.delete) {
       void terminalPanelWrite('\x7f');
     } else if (key.escape) {

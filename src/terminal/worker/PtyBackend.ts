@@ -46,11 +46,13 @@ export class PtyBackend {
     this.pty = null;
   }
 
-  signal(kind: 'sigint' | 'sigterm'): void {
+  signal(kind: 'sigint' | 'sigterm' | 'sigstop'): void {
     if (!this.pty) return;
     try {
       if (kind === 'sigint') {
         this.pty.write('\x03');
+      } else if (kind === 'sigstop') {
+        process.kill(this.pty.pid, 'SIGSTOP');
       } else {
         this.pty.kill();
       }

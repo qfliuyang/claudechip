@@ -73,7 +73,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
         ...prev,
         terminalPanelVisible: true,
       }));
-      onDone('Terminal pane is visible. Press Tab to move focus to terminal.', {
+      onDone('Terminal pane is visible. Press Ctrl+B to move focus to terminal.', {
         display: 'system',
       });
       return null;

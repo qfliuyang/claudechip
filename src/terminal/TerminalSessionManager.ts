@@ -185,7 +185,7 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
     };
   }
 
-  signal(kind: 'sigint' | 'sigterm'): void {
+  signal(kind: 'sigint' | 'sigterm' | 'sigstop'): void {
     if (!this.worker?.isRunning()) return;
     try {
       this.worker.send({ type: 'signal', kind });

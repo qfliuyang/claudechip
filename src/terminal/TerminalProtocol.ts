@@ -19,7 +19,7 @@ export type WorkerCommand =
       intent: TerminalIntent;
     }
   | { type: 'resize'; cols: number; rows: number }
-  | { type: 'signal'; kind: 'sigint' | 'sigterm' }
+  | { type: 'signal'; kind: 'sigint' | 'sigterm' | 'sigstop' }
   | { type: 'shutdown' }
   | { type: 'ping'; id: string };
 
