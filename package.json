@@ -17,7 +17,8 @@
   "scripts": {
     "dev": "bun run ./src/dev-entry.ts",
     "start": "bun run ./src/dev-entry.ts",
-    "version": "bun run ./src/dev-entry.ts --version"
+    "version": "bun run ./src/dev-entry.ts --version",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/*/spawn-helper ~/.bun/install/cache/node-pty@*/prebuilds/*/spawn-helper 2>/dev/null || true"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
@@ -50,6 +51,7 @@
     "chokidar": "*",
     "cli-boxes": "*",
     "code-excerpt": "*",
+    "color-diff-napi": "file:./shims/color-diff-napi",
     "diff": "*",
     "emoji-regex": "*",
     "env-paths": "*",
@@ -67,6 +69,8 @@
     "lodash-es": "*",
     "lru-cache": "*",
     "marked": "*",
+    "modifiers-napi": "file:./shims/modifiers-napi",
+    "node-pty": "^1.1.0",
     "p-map": "*",
     "picomatch": "*",
     "proper-lockfile": "*",
@@ -82,6 +86,7 @@
     "tree-kill": "*",
     "type-fest": "*",
     "undici": "*",
+    "url-handler-napi": "file:./shims/url-handler-napi",
     "usehooks-ts": "*",
     "vscode-jsonrpc": "*",
     "vscode-languageserver-protocol": "*",
@@ -90,9 +95,9 @@
     "ws": "*",
     "xss": "*",
     "yaml": "*",
-    "zod": "*",
-    "color-diff-napi": "file:./shims/color-diff-napi",
-    "modifiers-napi": "file:./shims/modifiers-napi",
-    "url-handler-napi": "file:./shims/url-handler-napi"
+    "zod": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }

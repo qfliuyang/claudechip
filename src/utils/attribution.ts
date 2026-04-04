@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { stat } from 'fs/promises'
 import { getClientType } from '../bootstrap/state.js'
 import {
@@ -284,12 +284,12 @@ async function getTranscriptStats(): Promise<{
 /**
  * Get enhanced PR attribution text with Claude contribution stats.
  *
- * Format: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5)"
+ * Format: "🤖 Generated with Claude Code (93% 3-shotted by claudechip-opus-4-5)"
  *
  * Rules:
  * - Shows Claude contribution percentage from commit attribution
  * - Shows N-shotted where N is the prompt count (1-shotted, 2-shotted, etc.)
- * - Shows short model name (e.g., claude-opus-4-5)
+ * - Shows short model name (e.g., claudechip-opus-4-5)
  * - Returns default attribution if stats can't be computed
  *
  * @param getAppState Function to get the current AppState (from command context)
@@ -366,7 +366,7 @@ export async function getEnhancedPRAttribution(
     return defaultAttribution
   }
 
-  // Build the enhanced attribution: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5, 2 memories recalled)"
+  // Build the enhanced attribution: "🤖 Generated with Claude Code (93% 3-shotted by claudechip-opus-4-5, 2 memories recalled)"
   const memSuffix =
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`
@@ -380,7 +380,7 @@ export async function getEnhancedPRAttribution(
   // squash_merge_commit_message=PR_BODY (cli, apps), the PR body becomes the
   // squash commit body verbatim — trailer lines at the end become proper git
   // trailers on the squash commit.
-  if (feature('COMMIT_ATTRIBUTION') && isInternal && attributionData) {
+  if (false && isInternal && attributionData) {
     const { buildPRTrailers } = await import('./attributionTrailer.js')
     const trailers = buildPRTrailers(attributionData, appState.attribution)
     const result = `${summary}\n\n${trailers.join('\n')}`

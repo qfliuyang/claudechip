@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle';
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang - causes hang;
 import { appendFileSync } from 'fs';
 import React from 'react';
 import { logEvent } from 'src/services/analytics/index.js';
@@ -173,9 +173,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   // Track current repo path for teleport directory switching (fire-and-forget)
   // This must happen AFTER trust to prevent untrusted directories from poisoning the mapping
   void updateGithubRepoPathMapping();
-  if (feature('LODESTONE')) {
-    updateDeepLinkTerminalPreference();
-  }
+  // SKIPPED: false - causes hang
 
   // Apply full environment variables after trust dialog is accepted OR in bypass mode
   // In bypass mode (CI/CD, automation), we trust the environment so apply all variables
@@ -201,10 +199,10 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   }
 
   // Check for custom API key
-  // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
+  // On homespace, CLAUDECHIP_API_KEY is preserved in process.env for child
   // processes but ignored by Claude Code itself (see auth.ts).
-  if (process.env.ANTHROPIC_API_KEY && !isRunningOnHomespace()) {
-    const customApiKeyTruncated = normalizeApiKeyForConfig(process.env.ANTHROPIC_API_KEY);
+  if (process.env.CLAUDECHIP_API_KEY && !isRunningOnHomespace()) {
+    const customApiKeyTruncated = normalizeApiKeyForConfig(process.env.CLAUDECHIP_API_KEY);
     const keyStatus = getCustomApiKeyStatus(customApiKeyTruncated);
     if (keyStatus === 'new') {
       const {
@@ -221,32 +219,15 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     } = await import('./components/BypassPermissionsModeDialog.js');
     await showSetupDialog(root, done => <BypassPermissionsModeDialog onAccept={done} />);
   }
-  if (feature('TRANSCRIPT_CLASSIFIER')) {
-    // Only show the opt-in dialog if auto mode actually resolved — if the
-    // gate denied it (org not allowlisted, settings disabled), showing
-    // consent for an unavailable feature is pointless. The
-    // verifyAutoModeGateAccess notification will explain why instead.
-    if (permissionMode === 'auto' && !hasAutoModeOptIn()) {
-      const {
-        AutoModeOptInDialog
-      } = await import('./components/AutoModeOptInDialog.js');
-      await showSetupDialog(root, done => <AutoModeOptInDialog onAccept={done} onDecline={() => gracefulShutdownSync(1)} declineExits />);
-    }
-  }
+  // SKIPPED: false - causes hang
 
   // --dangerously-load-development-channels confirmation. On accept, append
   // dev channels to any --channels list already set in main.tsx. Org policy
   // is NOT bypassed — gateChannelServer() still runs; this flag only exists
   // to sidestep the --channels approved-server allowlist.
-  if (feature('KAIROS') || feature('KAIROS_CHANNELS')) {
-    // gateChannelServer and ChannelsNotice read tengu_harbor after this
-    // function returns. A cold disk cache (fresh install, or first run after
-    // the flag was added server-side) defaults to false and silently drops
-    // channel notifications for the whole session — gh#37026.
-    // checkGate_CACHED_OR_BLOCKING returns immediately if disk already says
-    // true; only blocks on a cold/stale-false cache (awaits the same memoized
-    // initializeGrowthBook promise fired earlier). Also warms the
-    // isChannelsEnabled() check in the dev-channels dialog below.
+  // SKIPPED: false || false - causes hang
+  if (false) {
+    // Disabled block
     if (getAllowedChannels().length > 0 || (devChannels?.length ?? 0) > 0) {
       await checkGate_CACHED_OR_BLOCKING('tengu_harbor');
     }

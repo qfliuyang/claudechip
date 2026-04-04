@@ -1,5 +1,5 @@
 import { c as _c } from "react/compiler-runtime";
-import { feature } from 'bun:bundle';
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import chalk from 'chalk';
 import type { UUID } from 'crypto';
 import type { RefObject } from 'react';
@@ -10,6 +10,7 @@ import { getIsRemoteMode } from '../bootstrap/state.js';
 import type { Command } from '../commands.js';
 import { BLACK_CIRCLE } from '../constants/figures.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
+import { usePaneWidth } from './TwoPaneLayout.js';
 import type { ScrollBoxHandle } from '../ink/components/ScrollBox.js';
 import { useTerminalNotification } from '../ink/useTerminalNotification.js';
 import { Box, Text } from '../ink.js';
@@ -77,9 +78,9 @@ const LogoHeader = React.memo(function LogoHeader(t0) {
 
 // Dead code elimination: conditional import for proactive mode
 /* eslint-disable @typescript-eslint/no-require-imports */
-const proactiveModule = feature('PROACTIVE') || feature('KAIROS') ? require('../proactive/index.js') : null;
-const BRIEF_TOOL_NAME: string | null = feature('KAIROS') || feature('KAIROS_BRIEF') ? (require('../tools/BriefTool/prompt.js') as typeof import('../tools/BriefTool/prompt.js')).BRIEF_TOOL_NAME : null;
-const SEND_USER_FILE_TOOL_NAME: string | null = feature('KAIROS') ? (require('../tools/SendUserFileTool/prompt.js') as typeof import('../tools/SendUserFileTool/prompt.js')).SEND_USER_FILE_TOOL_NAME : null;
+const proactiveModule = false || false ? require('../proactive/index.js') : null;
+const BRIEF_TOOL_NAME: string | null = false || false ? (require('../tools/BriefTool/prompt.js') as typeof import('../tools/BriefTool/prompt.js')).BRIEF_TOOL_NAME : null;
+const SEND_USER_FILE_TOOL_NAME: string | null = false ? (require('../tools/SendUserFileTool/prompt.js') as typeof import('../tools/SendUserFileTool/prompt.js')).SEND_USER_FILE_TOOL_NAME : null;
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { VirtualMessageList } from './VirtualMessageList.js';
@@ -373,8 +374,11 @@ const MessagesImpl = ({
   renderRange
 }: Props): React.ReactNode => {
   const {
-    columns
+    columns: terminalColumns
   } = useTerminalSize();
+  const paneWidth = usePaneWidth();
+  // Use pane width when in two-pane mode, otherwise use full terminal width
+  const columns = paneWidth?.leftPaneWidth ?? terminalColumns;
   const toggleShowAllShortcut = useShortcutDisplay('transcript:toggleShowAll', 'Transcript', 'Ctrl+E');
   const normalizedMessages = useMemo(() => normalizeMessages(messages).filter(isNotEmptyMessage), [messages]);
 

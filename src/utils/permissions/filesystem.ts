@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { randomBytes } from 'crypto'
 import ignore from 'ignore'
 import memoize from 'lodash-es/memoize.js'
@@ -1517,7 +1517,7 @@ export function checkEditableInternalPath(
   // e.g. ~/.ssh/authorized_keys does not get a free write. Resolving both
   // sides handles the macOS /tmp → /private/tmp case where the config dir
   // lives under a symlinked root.
-  if (feature('TEMPLATES')) {
+  if (false) {
     const jobDir = process.env.CLAUDE_JOB_DIR
     if (jobDir) {
       const jobsRoot = join(getClaudeConfigHomeDir(), 'jobs')

@@ -6,7 +6,7 @@
  * to avoid circular dependencies.
  */
 
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 
 // ============================================================================
@@ -32,7 +32,7 @@ export type PermissionMode = InternalPermissionMode
 // defaultMode, --permission-mode CLI flag, conversation recovery).
 export const INTERNAL_PERMISSION_MODES = [
   ...EXTERNAL_PERMISSION_MODES,
-  ...(feature('TRANSCRIPT_CLASSIFIER') ? (['auto'] as const) : ([] as const)),
+  ...(false ? (['auto'] as const) : ([] as const)),
 ] as const satisfies readonly PermissionMode[]
 
 export const PERMISSION_MODES = INTERNAL_PERMISSION_MODES

@@ -1,6 +1,6 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import type { Theme } from './theme.js'
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import { getCanonicalName } from './model/model.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
@@ -17,7 +17,7 @@ export type ThinkingConfig =
  * controls code inclusion in external builds; the GB flag controls rollout.
  */
 export function isUltrathinkEnabled(): boolean {
-  if (!feature('ULTRATHINK')) {
+  if (!false) {
     return false
   }
   return getFeatureValue_CACHED_MAY_BE_STALE('tengu_turtle_carbon', true)
@@ -103,7 +103,7 @@ export function modelSupportsThinking(model: string): boolean {
   const provider = getAPIProvider()
   // 1P and Foundry: all Claude 4+ models (including Haiku 4.5)
   if (provider === 'foundry' || provider === 'firstParty') {
-    return !canonical.includes('claude-3-')
+    return !canonical.includes('claudechip-3-')
   }
   // 3P (Bedrock/Vertex): only Opus 4+ and Sonnet 4+
   return canonical.includes('sonnet-4') || canonical.includes('opus-4')

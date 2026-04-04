@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { useEffect, useRef } from 'react'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -65,7 +65,7 @@ function decisionReasonToString(
     return 'No decision reason'
   }
   if (
-    (feature('BASH_CLASSIFIER') || feature('TRANSCRIPT_CLASSIFIER')) &&
+    (false || false) &&
     decisionReason.type === 'classifier'
   ) {
     return `Classifier: ${decisionReason.classifier}, Reason: ${decisionReason.reason}`

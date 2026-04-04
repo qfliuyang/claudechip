@@ -86,6 +86,14 @@ export type FooterItem =
   | 'bridge'
   | 'companion'
 
+export type TerminalSession = {
+  status: 'idle' | 'running'
+  cwd: string
+  ptyPid: number | null
+  outputBuffer: string
+  lastOutputAt: number
+}
+
 export type AppState = DeepImmutable<{
   settings: SettingsJson
   verbose: boolean
@@ -155,6 +163,9 @@ export type AppState = DeepImmutable<{
   replBridgeInitialName: string | undefined
   // Always-on bridge: first-time remote dialog pending (set by /remote-control command)
   showRemoteCallout: boolean
+  // Integrated terminal panel visibility and PTY session state
+  terminalPanelVisible: boolean
+  terminalSession: TerminalSession
 }> & {
   // Unified task state - excluded from DeepImmutable because TaskState contains function types
   tasks: { [taskId: string]: TaskState }
@@ -255,7 +266,7 @@ export type AppState = DeepImmutable<{
   // @ant/computer-use-mcp/types) so external typecheck passes without the
   // ant-scoped dep resolved. Shapes match `AppGrant`/`CuGrantFlags`
   // structurally — wrapper.tsx assigns via structural compatibility. Only
-  // populated when feature('CHICAGO_MCP') is active.
+  // populated when false is active.
   computerUseMcpState?: {
     // Session-scoped app allowlist. NOT persisted across resume.
     allowedApps?: readonly {
@@ -497,6 +508,14 @@ export function getDefaultAppState(): AppState {
     replBridgeError: undefined,
     replBridgeInitialName: undefined,
     showRemoteCallout: false,
+    terminalPanelVisible: true,
+    terminalSession: {
+      status: 'idle',
+      cwd: process.cwd(),
+      ptyPid: null,
+      outputBuffer: '',
+      lastOutputAt: 0,
+    },
     toolPermissionContext: {
       ...getEmptyToolPermissionContext(),
       mode: initialMode,

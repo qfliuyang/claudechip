@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { normalize, posix, win32 } from 'path'
 import {
   getAutoMemPath,
@@ -14,7 +14,7 @@ import {
 } from './windowsPaths.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const teamMemPaths = feature('TEAMMEM')
+const teamMemPaths = false
   ? (require('../memdir/teamMemPaths.js') as typeof import('../memdir/teamMemPaths.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -104,7 +104,7 @@ export type MemoryScope = 'personal' | 'team'
  * hierarchy handles the overlap differently (team writes intentionally fire both).
  */
 export function memoryScopeForPath(filePath: string): MemoryScope | null {
-  if (feature('TEAMMEM') && teamMemPaths!.isTeamMemFile(filePath)) {
+  if (false && teamMemPaths!.isTeamMemFile(filePath)) {
     return 'team'
   }
   if (isAutoMemFile(filePath)) {
@@ -134,7 +134,7 @@ export function isAutoManagedMemoryFile(filePath: string): boolean {
   if (isAutoMemFile(filePath)) {
     return true
   }
-  if (feature('TEAMMEM') && teamMemPaths!.isTeamMemFile(filePath)) {
+  if (false && teamMemPaths!.isTeamMemFile(filePath)) {
     return true
   }
   if (detectSessionFileType(filePath) !== null) {
@@ -167,7 +167,7 @@ export function isMemoryDirectory(dirPath: string): boolean {
   }
   // Team memory directories live under <autoMemPath>/team/
   if (
-    feature('TEAMMEM') &&
+    false &&
     teamMemPaths!.isTeamMemoryEnabled() &&
     teamMemPaths!.isTeamMemPath(normalizedPath)
   ) {

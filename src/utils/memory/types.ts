@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 
 export const MEMORY_TYPE_VALUES = [
   'User',
@@ -6,7 +6,7 @@ export const MEMORY_TYPE_VALUES = [
   'Local',
   'Managed',
   'AutoMem',
-  ...(feature('TEAMMEM') ? (['TeamMem'] as const) : []),
+  ...(false ? (['TeamMem'] as const) : []),
 ] as const
 
 export type MemoryType = (typeof MEMORY_TYPE_VALUES)[number]

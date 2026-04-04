@@ -60,7 +60,7 @@ export type ScrollBoxHandle = {
    */
   setClampBounds: (min: number | undefined, max: number | undefined) => void;
 };
-export type ScrollBoxProps = Except<Styles, 'textWrap' | 'overflow' | 'overflowX' | 'overflowY'> & {
+export type ScrollBoxProps = Except<Styles, 'textWrap' | 'overflow'> & {
   ref?: Ref<ScrollBoxHandle>;
   /**
    * When true, automatically pins scroll position to the bottom when content
@@ -83,6 +83,8 @@ function ScrollBox({
   children,
   ref,
   stickyScroll,
+  overflowX: overflowXProp,
+  overflowY: overflowYProp,
   ...style
 }: PropsWithChildren<ScrollBoxProps>): React.ReactNode {
   const domRef = useRef<DOMElement>(null);
@@ -223,8 +225,8 @@ function ScrollBox({
     flexGrow: style.flexGrow ?? 0,
     flexShrink: style.flexShrink ?? 1,
     ...style,
-    overflowX: 'scroll',
-    overflowY: 'scroll'
+    overflowX: overflowXProp ?? 'scroll',
+    overflowY: overflowYProp ?? 'scroll'
   }} {...stickyScroll ? {
     stickyScroll: true
   } : {}}>

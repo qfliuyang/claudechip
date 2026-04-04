@@ -49,7 +49,7 @@ export function isEnvDefinedFalsy(
 /**
  * --bare / CLAUDE_CODE_SIMPLE — skip hooks, LSP, plugin sync, skill dir-walk,
  * attribution, background prefetches, and ALL keychain/credential reads.
- * Auth is strictly ANTHROPIC_API_KEY env or apiKeyHelper from --settings.
+ * Auth is strictly CLAUDECHIP_API_KEY env or apiKeyHelper from --settings.
  * Explicit CLI flags (--plugin-dir, --add-dir, --mcp-config) still honored.
  * ~30 gates across the codebase.
  *
@@ -150,18 +150,18 @@ export function isInProtectedNamespace(): boolean {
 /**
  * Model prefix → env var for Vertex region overrides.
  * Order matters: more specific prefixes must come before less specific ones
- * (e.g., 'claude-opus-4-1' before 'claude-opus-4').
+ * (e.g., 'claudechip-opus-4-1' before 'claudechip-opus-4').
  */
 const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = [
-  ['claude-haiku-4-5', 'VERTEX_REGION_CLAUDE_HAIKU_4_5'],
-  ['claude-3-5-haiku', 'VERTEX_REGION_CLAUDE_3_5_HAIKU'],
-  ['claude-3-5-sonnet', 'VERTEX_REGION_CLAUDE_3_5_SONNET'],
-  ['claude-3-7-sonnet', 'VERTEX_REGION_CLAUDE_3_7_SONNET'],
-  ['claude-opus-4-1', 'VERTEX_REGION_CLAUDE_4_1_OPUS'],
-  ['claude-opus-4', 'VERTEX_REGION_CLAUDE_4_0_OPUS'],
-  ['claude-sonnet-4-6', 'VERTEX_REGION_CLAUDE_4_6_SONNET'],
-  ['claude-sonnet-4-5', 'VERTEX_REGION_CLAUDE_4_5_SONNET'],
-  ['claude-sonnet-4', 'VERTEX_REGION_CLAUDE_4_0_SONNET'],
+  ['claudechip-haiku-4-5', 'VERTEX_REGION_CLAUDECHIP_HAIKU_4_5'],
+  ['claudechip-3-5-haiku', 'VERTEX_REGION_CLAUDECHIP_3_5_HAIKU'],
+  ['claudechip-3-5-sonnet', 'VERTEX_REGION_CLAUDECHIP_3_5_SONNET'],
+  ['claudechip-3-7-sonnet', 'VERTEX_REGION_CLAUDECHIP_3_7_SONNET'],
+  ['claudechip-opus-4-1', 'VERTEX_REGION_CLAUDECHIP_4_1_OPUS'],
+  ['claudechip-opus-4', 'VERTEX_REGION_CLAUDECHIP_4_0_OPUS'],
+  ['claudechip-sonnet-4-6', 'VERTEX_REGION_CLAUDECHIP_4_6_SONNET'],
+  ['claudechip-sonnet-4-5', 'VERTEX_REGION_CLAUDECHIP_4_5_SONNET'],
+  ['claudechip-sonnet-4', 'VERTEX_REGION_CLAUDECHIP_4_0_SONNET'],
 ]
 
 /**
@@ -180,4 +180,20 @@ export function getVertexRegionForModel(
     }
   }
   return getDefaultVertexRegion()
+}
+
+/**
+ * Get the Anthropic API key with support for CLAUDECHIP_API_KEY fallback.
+ * This allows custom deployments to use alternative environment variable names.
+ */
+export function getAnthropicApiKeyFromEnv(): string | undefined {
+  return process.env.CLAUDECHIP_API_KEY || process.env.CLAUDECHIP_API_KEY
+}
+
+/**
+ * Get the Anthropic base URL with support for CLAUDECHIP_BASE_URL fallback.
+ * This allows custom deployments to use alternative environment variable names.
+ */
+export function getAnthropicBaseUrlFromEnv(): string | undefined {
+  return process.env.CLAUDECHIP_BASE_URL || process.env.CLAUDECHIP_BASE_URL
 }

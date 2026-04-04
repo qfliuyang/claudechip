@@ -24,6 +24,7 @@ import {
 import { getOauthConfig } from '../../constants/oauth.js'
 import { isDebugToStdErr, logForDebugging } from '../../utils/debug.js'
 import {
+  getAnthropicBaseUrlFromEnv,
   getAWSRegion,
   getVertexRegionForModel,
   isEnvTruthy,
@@ -33,12 +34,12 @@ import {
  * Environment variables for different client types:
  *
  * Direct API:
- * - ANTHROPIC_API_KEY: Required for direct API access
+ * - CLAUDECHIP_API_KEY: Required for direct API access
  *
  * AWS Bedrock:
  * - AWS credentials configured via aws-sdk defaults
  * - AWS_REGION or AWS_DEFAULT_REGION: Sets the AWS region for all models (default: us-east-1)
- * - ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION: Optional. Override AWS region specifically for the small fast model (Haiku)
+ * - CLAUDECHIP_SMALL_FAST_MODEL_AWS_REGION: Optional. Override AWS region specifically for the small fast model (Haiku)
  *
  * Foundry (Azure):
  * - ANTHROPIC_FOUNDRY_RESOURCE: Your Azure resource name (e.g., 'my-resource')
@@ -54,10 +55,10 @@ import {
  *
  * Vertex AI:
  * - Model-specific region variables (highest priority):
- *   - VERTEX_REGION_CLAUDE_3_5_HAIKU: Region for Claude 3.5 Haiku model
- *   - VERTEX_REGION_CLAUDE_HAIKU_4_5: Region for Claude Haiku 4.5 model
- *   - VERTEX_REGION_CLAUDE_3_5_SONNET: Region for Claude 3.5 Sonnet model
- *   - VERTEX_REGION_CLAUDE_3_7_SONNET: Region for Claude 3.7 Sonnet model
+ *   - VERTEX_REGION_CLAUDECHIP_3_5_HAIKU: Region for ClaudeChip 3.5 Haiku model
+ *   - VERTEX_REGION_CLAUDECHIP_HAIKU_4_5: Region for ClaudeChip Haiku 4.5 model
+ *   - VERTEX_REGION_CLAUDECHIP_3_5_SONNET: Region for ClaudeChip 3.5 Sonnet model
+ *   - VERTEX_REGION_CLAUDECHIP_3_7_SONNET: Region for ClaudeChip 3.7 Sonnet model
  * - CLOUD_ML_REGION: Optional. The default GCP region to use for all models
  *   If specific model region not specified above
  * - ANTHROPIC_VERTEX_PROJECT_ID: Required. Your GCP project ID
@@ -155,8 +156,8 @@ export async function getAnthropicClient({
     // Use region override for small fast model if specified
     const awsRegion =
       model === getSmallFastModel() &&
-      process.env.ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION
-        ? process.env.ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION
+      process.env.CLAUDECHIP_SMALL_FAST_MODEL_AWS_REGION
+        ? process.env.CLAUDECHIP_SMALL_FAST_MODEL_AWS_REGION
         : getAWSRegion()
 
     const bedrockArgs: ConstructorParameters<typeof AnthropicBedrock>[0] = {
@@ -298,16 +299,19 @@ export async function getAnthropicClient({
   }
 
   // Determine authentication method based on available tokens
+  const envBaseUrl = getAnthropicBaseUrlFromEnv()
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
     apiKey: isClaudeAISubscriber() ? null : apiKey || getAnthropicApiKey(),
     authToken: isClaudeAISubscriber()
       ? getClaudeAIOAuthTokens()?.accessToken
       : undefined,
-    // Set baseURL from OAuth config when using staging OAuth
-    ...(process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.USE_STAGING_OAUTH)
-      ? { baseURL: getOauthConfig().BASE_API_URL }
-      : {}),
+    // Set baseURL from env var or OAuth config when using staging OAuth
+    ...(envBaseUrl
+      ? { baseURL: envBaseUrl }
+      : process.env.USER_TYPE === 'ant' &&
+          isEnvTruthy(process.env.USE_STAGING_OAUTH)
+        ? { baseURL: getOauthConfig().BASE_API_URL }
+        : {}),
     ...ARGS,
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   }

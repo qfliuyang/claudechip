@@ -28,6 +28,12 @@ if (!('MACRO' in globalThis)) {
     defaultMacro
 }
 
+// Ensure interactive mode for TUI when no arguments provided
+// This allows the two-pane layout to render even when stdin is not a TTY
+if (process.argv.length <= 2 && !process.env.CLAUDE_CODE_FORCE_INTERACTIVE) {
+  process.env.CLAUDE_CODE_FORCE_INTERACTIVE = '1'
+}
+
 type MissingImport = {
   importer: string
   specifier: string
@@ -142,4 +148,6 @@ if (missingImports.length > 0) {
 
 // Route through the original CLI bootstrap so the exported `main()` is
 // actually invoked. Importing `main.tsx` directly only evaluates the module.
+console.log('[DEV-ENTRY] About to import cli.tsx...')
 await import('./entrypoints/cli.tsx')
+console.log('[DEV-ENTRY] cli.tsx imported successfully')

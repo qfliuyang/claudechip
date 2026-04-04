@@ -3,7 +3,7 @@
  * Populated from useCanUseTool.ts, read from RecentDenialsTab.tsx in /permissions.
  */
 
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 
 export type AutoModeDenial = {
   toolName: string
@@ -17,7 +17,7 @@ let DENIALS: readonly AutoModeDenial[] = []
 const MAX_DENIALS = 20
 
 export function recordAutoModeDenial(denial: AutoModeDenial): void {
-  if (!feature('TRANSCRIPT_CLASSIFIER')) return
+  if (!false) return
   DENIALS = [denial, ...DENIALS.slice(0, MAX_DENIALS - 1)]
 }
 

@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { z } from 'zod/v4'
 import { SandboxSettingsSchema } from '../../entrypoints/sandboxTypes.js'
 import { isEnvTruthy } from '../envUtils.js'
@@ -58,7 +58,7 @@ export const PermissionsSchema = lazySchema(() =>
         ),
       defaultMode: z
         .enum(
-          feature('TRANSCRIPT_CLASSIFIER')
+          false
             ? PERMISSION_MODES
             : EXTERNAL_PERMISSION_MODES,
         )
@@ -68,7 +68,7 @@ export const PermissionsSchema = lazySchema(() =>
         .enum(['disable'])
         .optional()
         .describe('Disable the ability to bypass permission prompts'),
-      ...(feature('TRANSCRIPT_CLASSIFIER')
+      ...(false
         ? {
             disableAutoMode: z
               .enum(['disable'])
@@ -392,7 +392,7 @@ export const SettingsSchema = lazySchema(() =>
         .record(z.string(), z.string())
         .optional()
         .describe(
-          'Override mapping from Anthropic model ID (e.g. "claude-opus-4-6") to provider-specific ' +
+          'Override mapping from ClaudeChip model ID (e.g. "claudechip-opus-4-6") to provider-specific ' +
             'model ID (e.g. a Bedrock inference profile ARN). Typically set in managed settings by ' +
             'enterprise administrators.',
         ),
@@ -805,7 +805,7 @@ export const SettingsSchema = lazySchema(() =>
         .enum(['latest', 'stable'])
         .optional()
         .describe('Release channel for auto-updates (latest or stable)'),
-      ...(feature('LODESTONE')
+      ...(false
         ? {
             disableDeepLinkRegistration: z
               .enum(['disable'])
@@ -838,7 +838,7 @@ export const SettingsSchema = lazySchema(() =>
               ),
           }
         : {}),
-      ...(feature('PROACTIVE') || feature('KAIROS')
+      ...(false || false
         ? {
             minSleepDurationMs: z
               .number()
@@ -861,7 +861,7 @@ export const SettingsSchema = lazySchema(() =>
               ),
           }
         : {}),
-      ...(feature('VOICE_MODE')
+      ...(false
         ? {
             voiceEnabled: z
               .boolean()
@@ -869,7 +869,7 @@ export const SettingsSchema = lazySchema(() =>
               .describe('Enable voice mode (hold-to-talk dictation)'),
           }
         : {}),
-      ...(feature('KAIROS')
+      ...(false
         ? {
             assistant: z
               .boolean()
@@ -919,7 +919,7 @@ export const SettingsSchema = lazySchema(() =>
             'plugins may push inbound messages. Undefined falls back to the default. ' +
             'Requires channelsEnabled: true.',
         ),
-      ...(feature('KAIROS') || feature('KAIROS_BRIEF')
+      ...(false || false
         ? {
             defaultView: z
               .enum(['chat', 'transcript'])
@@ -965,7 +965,7 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Whether the user has accepted the bypass permissions mode dialog',
         ),
-      ...(feature('TRANSCRIPT_CLASSIFIER')
+      ...(false
         ? {
             skipAutoPermissionPrompt: z
               .boolean()

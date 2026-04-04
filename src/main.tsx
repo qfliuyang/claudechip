@@ -18,7 +18,7 @@ import { ensureKeychainPrefetchCompleted, startKeychainPrefetch } from './utils/
 
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 startKeychainPrefetch();
-import { feature } from 'bun:bundle';
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { Command as CommanderCommand, InvalidArgumentError, Option } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import { readFileSync } from 'fs';
@@ -73,12 +73,12 @@ const getTeammateModeSnapshot = () => require('./utils/swarm/backends/teammateMo
 /* eslint-enable @typescript-eslint/no-require-imports */
 // Dead code elimination: conditional import for COORDINATOR_MODE
 /* eslint-disable @typescript-eslint/no-require-imports */
-const coordinatorModeModule = feature('COORDINATOR_MODE') ? require('./coordinator/coordinatorMode.js') as typeof import('./coordinator/coordinatorMode.js') : null;
+const coordinatorModeModule = false ? require('./coordinator/coordinatorMode.js') as typeof import('./coordinator/coordinatorMode.js') : null;
 /* eslint-enable @typescript-eslint/no-require-imports */
 // Dead code elimination: conditional import for KAIROS (assistant mode)
 /* eslint-disable @typescript-eslint/no-require-imports */
-const assistantModule = feature('KAIROS') ? require('./assistant/index.js') as typeof import('./assistant/index.js') : null;
-const kairosGate = feature('KAIROS') ? require('./assistant/gate.js') as typeof import('./assistant/gate.js') : null;
+const assistantModule = false ? require('./assistant/index.js') as typeof import('./assistant/index.js') : null;
+const kairosGate = false ? require('./assistant/gate.js') as typeof import('./assistant/gate.js') : null;
 import { relative, resolve } from 'path';
 import { isAnalyticsDisabled } from 'src/services/analytics/config.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
@@ -168,7 +168,7 @@ import { plural } from 'src/utils/stringUtils.js';
 import { type ChannelEntry, getInitialMainLoopModel, getIsNonInteractiveSession, getSdkBetas, getSessionId, getUserMsgOptIn, setAllowedChannels, setAllowedSettingSources, setChromeFlagOverride, setClientType, setCwdState, setDirectConnectServerUrl, setFlagSettingsPath, setInitialMainLoopModel, setInlinePlugins, setIsInteractive, setKairosActive, setOriginalCwd, setQuestionPreviewFormat, setSdkBetas, setSessionBypassPermissionsMode, setSessionPersistenceDisabled, setSessionSource, setUserMsgOptIn, switchSession } from './bootstrap/state.js';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER') ? require('./utils/permissions/autoModeState.js') as typeof import('./utils/permissions/autoModeState.js') : null;
+const autoModeStateModule = false ? require('./utils/permissions/autoModeState.js') as typeof import('./utils/permissions/autoModeState.js') : null;
 
 // TeleportRepoMismatchDialog, TeleportResumeWrapper dynamically imported at call sites
 import { migrateAutoUpdatesToSettings } from './migrations/migrateAutoUpdatesToSettings.js';
@@ -334,7 +334,7 @@ function runMigrations(): void {
     migrateSonnet45ToSonnet46();
     migrateOpusToOpus1m();
     migrateReplBridgeEnabledToRemoteControlAtStartup();
-    if (feature('TRANSCRIPT_CLASSIFIER')) {
+    if (false) {
       resetAutoModeOptInForDefaultOffer();
     }
     if ("external" === 'ant') {
@@ -545,7 +545,7 @@ type PendingConnect = {
   authToken: string | undefined;
   dangerouslySkipPermissions: boolean;
 };
-const _pendingConnect: PendingConnect | undefined = feature('DIRECT_CONNECT') ? {
+const _pendingConnect: PendingConnect | undefined = false ? {
   url: undefined,
   authToken: undefined,
   dangerouslySkipPermissions: false
@@ -556,7 +556,7 @@ type PendingAssistantChat = {
   sessionId?: string;
   discover: boolean;
 };
-const _pendingAssistantChat: PendingAssistantChat | undefined = feature('KAIROS') ? {
+const _pendingAssistantChat: PendingAssistantChat | undefined = false ? {
   sessionId: undefined,
   discover: false
 } : undefined;
@@ -574,7 +574,7 @@ type PendingSSH = {
   /** Extra CLI args to forward to the remote CLI on initial spawn (--resume, -c). */
   extraCliArgs: string[];
 };
-const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE') ? {
+const _pendingSSH: PendingSSH | undefined = false ? {
   host: undefined,
   cwd: undefined,
   permissionMode: undefined,
@@ -615,7 +615,7 @@ export async function main() {
   // Check for cc:// or cc+unix:// URL in argv — rewrite so the main command
   // handles it, giving the full interactive TUI instead of a stripped-down subcommand.
   // For headless (-p), we rewrite to the internal `open` subcommand.
-  if (feature('DIRECT_CONNECT')) {
+  if (false) {
     const rawCliArgs = process.argv.slice(2);
     const ccIdx = rawCliArgs.findIndex(a => a.startsWith('cc://') || a.startsWith('cc+unix://'));
     if (ccIdx !== -1 && _pendingConnect) {
@@ -650,7 +650,7 @@ export async function main() {
   // Handle deep link URIs early — this is invoked by the OS protocol handler
   // and should bail out before full init since it only needs to parse the URI
   // and open a terminal.
-  if (feature('LODESTONE')) {
+  if (false) {
     const handleUriIdx = process.argv.indexOf('--handle-uri');
     if (handleUriIdx !== -1 && process.argv[handleUriIdx + 1]) {
       const {
@@ -688,7 +688,7 @@ export async function main() {
   // `claude -p "explain assistant"`. Root-flag-before-subcommand
   // (e.g. `--debug assistant`) falls through to the stub, which
   // prints usage.
-  if (feature('KAIROS') && _pendingAssistantChat) {
+  if (false && _pendingAssistantChat) {
     const rawArgs = process.argv.slice(2);
     if (rawArgs[0] === 'assistant') {
       const nextArg = rawArgs[1];
@@ -709,7 +709,7 @@ export async function main() {
   // runs (full interactive TUI), stash the host/dir for the REPL branch at
   // ~line 3720 to pick up. Headless (-p) mode not supported in v1: SSH
   // sessions need the local REPL to drive them (interrupt, permissions).
-  if (feature('SSH_REMOTE') && _pendingSSH) {
+  if (false && _pendingSSH) {
     const rawCliArgs = process.argv.slice(2);
     // SSH-specific flags can appear before the host positional (e.g.
     // `ssh --permission-mode auto host /tmp` — standard POSIX flags-before-
@@ -806,7 +806,22 @@ export async function main() {
   const hasPrintFlag = cliArgs.includes('-p') || cliArgs.includes('--print');
   const hasInitOnlyFlag = cliArgs.includes('--init-only');
   const hasSdkUrl = cliArgs.some(arg => arg.startsWith('--sdk-url'));
-  const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || !process.stdout.isTTY;
+  const forceInteractive = cliArgs.includes('--interactive') || isEnvTruthy(process.env.CLAUDE_CODE_FORCE_INTERACTIVE);
+  // Auto-detect interactive mode: no flags + has TTY = interactive TUI
+  const hasNoFlags = cliArgs.length === 0;
+  const isNonInteractive = !forceInteractive && (hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || (!process.stdout.isTTY && !hasNoFlags));
+  // DEBUG: Log interactive mode detection
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] Interactive check:', {
+    forceInteractive,
+    hasPrintFlag,
+    hasInitOnlyFlag,
+    hasSdkUrl,
+    'process.stdout.isTTY': process.stdout.isTTY,
+    'process.env.CLAUDE_CODE_FORCE_INTERACTIVE': process.env.CLAUDE_CODE_FORCE_INTERACTIVE,
+    isNonInteractive,
+    cliArgs
+  });
 
   // Stop capturing early input for non-interactive modes
   if (isNonInteractive) {
@@ -816,9 +831,13 @@ export async function main() {
   // Set simplified tracking fields
   const isInteractive = !isNonInteractive;
   setIsInteractive(isInteractive);
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] After setIsInteractive:', isInteractive);
 
   // Initialize entrypoint based on mode - needs to be set before any event is logged
   initializeEntrypoint(isNonInteractive);
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] After initializeEntrypoint');
 
   // Determine client type
   const clientType = (() => {
@@ -857,7 +876,11 @@ export async function main() {
   // Parse and load settings flags early, before init()
   eagerLoadSettings();
   profileCheckpoint('main_before_run');
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] About to call run()');
   await run();
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] After run()');
   profileCheckpoint('main_after_run');
 }
 async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json'): Promise<string | AsyncIterable<string>> {
@@ -889,6 +912,8 @@ async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json
 }
 async function run(): Promise<CommanderCommand> {
   profileCheckpoint('run_function_start');
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] run() started');
 
   // Create help config that sorts options by long option name.
   // Commander supports compareOptions at runtime but @commander-js/extra-typings
@@ -907,12 +932,31 @@ async function run(): Promise<CommanderCommand> {
   }
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
   profileCheckpoint('run_commander_initialized');
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] Commander initialized');
 
   // Use preAction hook to run initialization only when executing a command,
   // not when displaying help. This avoids the need for env variable signaling.
   program.hook('preAction', async thisCommand => {
     profileCheckpoint('preAction_start');
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction hook started');
     // Await async subprocess loads started at module evaluation (lines 12-20).
+    // Nearly free — subprocesses complete during the ~135ms of imports above.
+    // Must resolve before init() which triggers the first settings read
+    // (applySafeConfigEnvironmentVariables → getSettingsForSource('policySettings')
+    // → isRemoteManagedSettingsEligible → sync keychain reads otherwise ~65ms).
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: awaiting MDM and keychain...');
+    await Promise.all([ensureMdmSettingsLoaded(), ensureKeychainPrefetchCompleted()]);
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: MDM/keychain done');
+    profileCheckpoint('preAction_after_mdm');
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: about to call init()...');
+    await init();
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: init() done');
     // Nearly free — subprocesses complete during the ~135ms of imports above.
     // Must resolve before init() which triggers the first settings read
     // (applySafeConfigEnvironmentVariables → getSettingsForSource('policySettings')
@@ -928,6 +972,8 @@ async function run(): Promise<CommanderCommand> {
     if (!isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_TERMINAL_TITLE)) {
       process.title = 'claude';
     }
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: after set title');
 
     // Attach logging sinks so subcommand handlers can use logEvent/logError.
     // Before PR #11106 logEvent dispatched directly; after, events queue until
@@ -939,6 +985,8 @@ async function run(): Promise<CommanderCommand> {
     } = await import('./utils/sinks.js');
     initSinks();
     profileCheckpoint('preAction_after_sinks');
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: after initSinks');
 
     // gh-33508: --plugin-dir is a top-level program option. The default
     // action reads it from its own options destructure, but subcommands
@@ -955,6 +1003,8 @@ async function run(): Promise<CommanderCommand> {
     }
     runMigrations();
     profileCheckpoint('preAction_after_migrations');
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] preAction: after migrations');
 
     // Load remote managed settings for enterprise customers (non-blocking)
     // Fails open - if fetch fails, continues without remote settings
@@ -966,7 +1016,7 @@ async function run(): Promise<CommanderCommand> {
 
     // Load settings sync (non-blocking, fail-open)
     // CLI: uploads local settings to remote (CCR download is handled by print.ts)
-    if (feature('UPLOAD_USER_SETTINGS')) {
+    if (false) {
       void import('./services/settingsSync/index.js').then(m => m.uploadUserSettingsInBackground());
     }
     profileCheckpoint('preAction_after_settings_sync');
@@ -1053,7 +1103,7 @@ async function run(): Promise<CommanderCommand> {
     // until the directory has been explicitly trusted.
     let kairosEnabled = false;
     let assistantTeamContext: Awaited<ReturnType<NonNullable<typeof assistantModule>['initializeAssistantTeam']>> | undefined;
-    if (feature('KAIROS') && (options as {
+    if (false && (options as {
       assistant?: boolean;
     }).assistant && assistantModule) {
       // --assistant (Agent SDK daemon mode): force the latch before
@@ -1061,7 +1111,7 @@ async function run(): Promise<CommanderCommand> {
       // entitlement — don't make the child re-check tengu_kairos.
       assistantModule.markAssistantForced();
     }
-    if (feature('KAIROS') && assistantModule?.isAssistantMode() &&
+    if (false && assistantModule?.isAssistantMode() &&
     // Spawned teammates share the leader's cwd + settings.json, so
     // isAssistantMode() is true for them too. --agent-id being set
     // means we ARE a spawned teammate (extractTeammateOptions runs
@@ -1119,7 +1169,7 @@ async function run(): Promise<CommanderCommand> {
     let fileDownloadPromise: Promise<DownloadResult[]> | undefined;
     const agentsJson = options.agents;
     const agentCli = options.agent;
-    if (feature('BG_SESSIONS') && agentCli) {
+    if (false && agentCli) {
       process.env.CLAUDE_CODE_AGENT = agentCli;
     }
 
@@ -1167,9 +1217,11 @@ async function run(): Promise<CommanderCommand> {
     }
 
     // Extract tmux option (requires --worktree)
-    const tmuxEnabled = isWorktreeModeEnabled() && (options as {
+    const worktreeModeEnabled = isWorktreeModeEnabled();
+    const tmuxOption = (options as {
       tmux?: boolean;
-    }).tmux === true;
+    }).tmux;
+    const tmuxEnabled = worktreeModeEnabled && tmuxOption === true;
 
     // Validate tmux option
     if (tmuxEnabled) {
@@ -1311,7 +1363,8 @@ async function run(): Promise<CommanderCommand> {
     const fileSpecs = (options as {
       file?: string[];
     }).file;
-    if (fileSpecs && fileSpecs.length > 0) {
+    const hasFileSpecs = fileSpecs && fileSpecs.length > 0;
+    if (hasFileSpecs) {
       // Get session ingress token (provided by EnvManager via CLAUDE_CODE_SESSION_ACCESS_TOKEN)
       const sessionToken = getSessionIngressAuthToken();
       if (!sessionToken) {
@@ -1325,8 +1378,9 @@ async function run(): Promise<CommanderCommand> {
       if (files.length > 0) {
         // Use ANTHROPIC_BASE_URL if set (by EnvManager), otherwise use OAuth config
         // This ensures consistency with session ingress API in all environments
+        const oauthConfig = getOauthConfig();
         const config: FilesApiConfig = {
-          baseUrl: process.env.ANTHROPIC_BASE_URL || getOauthConfig().BASE_API_URL,
+          baseUrl: process.env.ANTHROPIC_BASE_URL || oauthConfig.BASE_API_URL,
           oauthToken: sessionToken,
           sessionId: fileSessionId
         };
@@ -1402,7 +1456,7 @@ async function run(): Promise<CommanderCommand> {
 
     // Store session bypass permissions mode for trust dialog check
     setSessionBypassPermissionsMode(permissionMode === 'bypassPermissions');
-    if (feature('TRANSCRIPT_CLASSIFIER')) {
+    if (false) {
       // autoModeFlagCli is the "did the user intend auto this session" signal.
       // Set when: --enable-auto-mode, --permission-mode auto, resolved mode
       // is auto, OR settings defaultMode is auto but the gate denied it
@@ -1480,7 +1534,7 @@ async function run(): Promise<CommanderCommand> {
         let reservedNameError: string | null = null;
         if (nonSdkConfigNames.some(isClaudeInChromeMCPServer)) {
           reservedNameError = `Invalid MCP configuration: "${CLAUDE_IN_CHROME_MCP_SERVER_NAME}" is a reserved MCP name.`;
-        } else if (feature('CHICAGO_MCP')) {
+        } else if (false) {
           const {
             isComputerUseMCPServer,
             COMPUTER_USE_MCP_SERVER_NAME
@@ -1574,7 +1628,7 @@ async function run(): Promise<CommanderCommand> {
           ...dynamicMcpConfig,
           ...chromeMcpConfig
         };
-        const hint = feature('WEB_BROWSER_TOOL') && typeof Bun !== 'undefined' && 'WebView' in Bun ? CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER : CLAUDE_IN_CHROME_SKILL_HINT;
+        const hint = false && typeof Bun !== 'undefined' && 'WebView' in Bun ? CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER : CLAUDE_IN_CHROME_SKILL_HINT;
         appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${hint}` : hint;
       } catch (error) {
         // Silently skip any errors for the auto-enable
@@ -1611,7 +1665,7 @@ async function run(): Promise<CommanderCommand> {
     // `type: 'stdio'`. An enterprise-config ant with the GB gate on would
     // otherwise process.exit(1). Chrome has the same latent issue but has
     // shipped without incident; chicago places itself correctly.
-    if (feature('CHICAGO_MCP') && getPlatform() === 'macos' && !getIsNonInteractiveSession()) {
+    if (false && getPlatform() === 'macos' && !getIsNonInteractiveSession()) {
       try {
         const {
           getChicagoEnabled
@@ -1635,6 +1689,7 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
+
     // Store additional directories for CLAUDE.md loading (controlled by env var)
     setAdditionalDirectoriesForClaudeMd(addDir);
 
@@ -1645,7 +1700,7 @@ async function run(): Promise<CommanderCommand> {
     // devChannels is deferred: showSetupScreens shows a confirmation dialog
     // and only appends to allowedChannels on accept.
     let devChannels: ChannelEntry[] | undefined;
-    if (feature('KAIROS') || feature('KAIROS_CHANNELS')) {
+    if (false || false) {
       // Parse plugin:name@marketplace / server:Y tags into typed entries.
       // Tag decides trust model downstream: plugin-kind hits marketplace
       // verification + GrowthBook allowlist, server-kind always fails
@@ -1731,7 +1786,7 @@ async function run(): Promise<CommanderCommand> {
     // the tool as enabled when computing the base-tools disallow filter.
     // Conditional require avoids leaking the tool-name string into
     // external builds.
-    if ((feature('KAIROS') || feature('KAIROS_BRIEF')) && baseTools.length > 0) {
+    if ((false || false) && baseTools.length > 0) {
       /* eslint-disable @typescript-eslint/no-require-imports */
       const {
         BRIEF_TOOL_NAME,
@@ -1772,7 +1827,7 @@ async function run(): Promise<CommanderCommand> {
       }
       toolPermissionContext = removeDangerousPermissions(toolPermissionContext, overlyBroadBashPermissions);
     }
-    if (feature('TRANSCRIPT_CLASSIFIER') && dangerousPermissions.length > 0) {
+    if (false && dangerousPermissions.length > 0) {
       toolPermissionContext = stripDangerousPermissionsForAutoMode(toolPermissionContext);
     }
 
@@ -1875,7 +1930,7 @@ async function run(): Promise<CommanderCommand> {
 
     // Apply coordinator mode tool filtering for headless path
     // (mirrors useMergedTools.ts filtering for REPL/interactive path)
-    if (feature('COORDINATOR_MODE') && isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE)) {
+    if (false && isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE)) {
       const {
         applyCoordinatorToolFilter
       } = await import('./utils/toolPool.js');
@@ -1906,6 +1961,7 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
+
     // IMPORTANT: setup() must be called before any other code that depends on the cwd or worktree setup
     profileCheckpoint('action_before_setup');
     logForDebugging('[STARTUP] Running setup()...');
@@ -1913,7 +1969,7 @@ async function run(): Promise<CommanderCommand> {
     const {
       setup
     } = await import('./setup.js');
-    const messagingSocketPath = feature('UDS_INBOX') ? (options as {
+    const messagingSocketPath = false ? (options as {
       messagingSocketPath?: string;
     }).messagingSocketPath : undefined;
     // Parallelize setup() with commands+agents loading. setup()'s ~28ms is
@@ -1948,7 +2004,7 @@ async function run(): Promise<CommanderCommand> {
     // Callers who inject and also want those injections visible in the
     // stream pass --messaging-socket-path explicitly (or --replay-user-messages).
     let effectiveReplayUserMessages = !!options.replayUserMessages;
-    if (feature('UDS_INBOX')) {
+    if (false) {
       if (!effectiveReplayUserMessages && outputFormat === 'stream-json') {
         effectiveReplayUserMessages = !!(options as {
           messagingSocketPath?: string;
@@ -2020,6 +2076,7 @@ async function run(): Promise<CommanderCommand> {
       await initializeGrowthBook();
     }
 
+
     // Special case the default model with the null keyword
     // NOTE: Model resolution happens after setup() to ensure trust is established before AWS auth
     const userSpecifiedModel = options.model === 'default' ? getDefaultMainLoopModel() : options.model;
@@ -2032,7 +2089,9 @@ async function run(): Promise<CommanderCommand> {
     const commandsStart = Date.now();
     // Join the promises kicked before setup() (or start fresh if
     // worktreeEnabled gated the early kick). Both memoized by cwd.
-    const [commands, agentDefinitionsResult] = await Promise.all([commandsPromise ?? getCommands(currentCwd), agentDefsPromise ?? getAgentDefinitionsWithOverrides(currentCwd)]);
+    const promise1 = commandsPromise ?? getCommands(currentCwd);
+    const promise2 = agentDefsPromise ?? getAgentDefinitionsWithOverrides(currentCwd);
+    const [commands, agentDefinitionsResult] = await Promise.all([promise1, promise2]);
     logForDebugging(`[STARTUP] Commands and agents loaded in ${Date.now() - commandsStart}ms`);
     profileCheckpoint('action_commands_loaded');
 
@@ -2187,7 +2246,7 @@ async function run(): Promise<CommanderCommand> {
     // BEFORE any isBriefEnabled() read below (proactive prompt's
     // briefVisibility). A persisted 'chat' after a GB kill-switch falls
     // through (entitlement fails).
-    if ((feature('KAIROS') || feature('KAIROS_BRIEF')) && !getIsNonInteractiveSession() && !getUserMsgOptIn() && getInitialSettings().defaultView === 'chat') {
+    if ((false || false) && !getIsNonInteractiveSession() && !getUserMsgOptIn() && getInitialSettings().defaultView === 'chat') {
       /* eslint-disable @typescript-eslint/no-require-imports */
       const {
         isBriefEntitled
@@ -2200,16 +2259,17 @@ async function run(): Promise<CommanderCommand> {
     // Coordinator mode has its own system prompt and filters out Sleep, so
     // the generic proactive prompt would tell it to call a tool it can't
     // access and conflict with delegation instructions.
-    if ((feature('PROACTIVE') || feature('KAIROS')) && ((options as {
+    const proactiveEnabled = (false || false) && ((options as {
       proactive?: boolean;
-    }).proactive || isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE)) && !coordinatorModeModule?.isCoordinatorMode()) {
+    }).proactive || isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE)) && !coordinatorModeModule?.isCoordinatorMode();
+    if (proactiveEnabled) {
       /* eslint-disable @typescript-eslint/no-require-imports */
-      const briefVisibility = feature('KAIROS') || feature('KAIROS_BRIEF') ? (require('./tools/BriefTool/BriefTool.js') as typeof import('./tools/BriefTool/BriefTool.js')).isBriefEnabled() ? 'Call SendUserMessage at checkpoints to mark where things stand.' : 'The user will see any text you output.' : 'The user will see any text you output.';
+      const briefVisibility = false || false ? (require('./tools/BriefTool/BriefTool.js') as typeof import('./tools/BriefTool/BriefTool.js')).isBriefEnabled() ? 'Call SendUserMessage at checkpoints to mark where things stand.' : 'The user will see any text you output.' : 'The user will see any text you output.';
       /* eslint-enable @typescript-eslint/no-require-imports */
       const proactivePrompt = `\n# Proactive Mode\n\nYou are in proactive mode. Take initiative — explore, act, and make progress without waiting for instructions.\n\nStart by briefly greeting the user.\n\nYou will receive periodic <tick> prompts. These are check-ins. Do whatever seems most useful, or call Sleep if there's nothing to do. ${briefVisibility}`;
       appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${proactivePrompt}` : proactivePrompt;
     }
-    if (feature('KAIROS') && kairosEnabled && assistantModule) {
+    if (false && kairosEnabled && assistantModule) {
       const assistantAddendum = assistantModule.getAssistantSystemPromptAddendum();
       appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${assistantAddendum}` : assistantAddendum;
     }
@@ -2221,7 +2281,11 @@ async function run(): Promise<CommanderCommand> {
     let stats!: StatsStore;
 
     // Show setup screens after commands are loaded
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('[DEBUG] About to check isNonInteractiveSession for TUI render:', !isNonInteractiveSession);
     if (!isNonInteractiveSession) {
+      // biome-ignore lint/suspicious/noConsole: <explanation>
+      console.error('[DEBUG] Entering TUI render block');
       const ctx = getRenderContext(false);
       getFpsMetrics = ctx.getFpsMetrics;
       stats = ctx.stats;
@@ -2229,27 +2293,40 @@ async function run(): Promise<CommanderCommand> {
       if ("external" === 'ant') {
         installAsciicastRecorder();
       }
+      // biome-ignore lint/suspicious/noConsole: <explanation>
+      console.error('[DEBUG] About to import createRoot');
       const {
         createRoot
       } = await import('./ink.js');
+      // biome-ignore lint/suspicious/noConsole: <explanation>
+      console.error('[DEBUG] About to createRoot');
+      process.stdout.write('[MAIN] About to call createRoot\n');
       root = await createRoot(ctx.renderOptions);
+      process.stdout.write('[MAIN] createRoot returned\n');
+      process.stdout.write('[MAIN] createRoot done\n');
 
       // Log startup time now, before any blocking dialog renders. Logging
       // from REPL's first render (the old location) included however long
       // the user sat on trust/OAuth/onboarding/resume-picker — p99 was ~70s
       // dominated by dialog-wait time, not code-path startup.
+      process.stdout.write('[MAIN] about to call logEvent\n');
       logEvent('tengu_timer', {
         event: 'startup' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         durationMs: Math.round(process.uptime() * 1000)
       });
+      process.stdout.write('[MAIN] about to call logForDebugging\n');
       logForDebugging('[STARTUP] Running showSetupScreens()...');
+      process.stdout.write('[MAIN] about to call showSetupScreens\n');
       const setupScreensStart = Date.now();
       const onboardingShown = await showSetupScreens(root, permissionMode, allowDangerouslySkipPermissions, commands, enableClaudeInChrome, devChannels);
+      process.stdout.write('[MAIN] showSetupScreens returned\n');
       logForDebugging(`[STARTUP] showSetupScreens() completed in ${Date.now() - setupScreensStart}ms`);
 
+      process.stdout.write('[MAIN] about to check remoteControlOption\n');
+      process.stdout.write('[MAIN] about to check remoteControlOption (done - false)\n');
       // Now that trust is established and GrowthBook has auth headers,
       // resolve the --remote-control / --rc entitlement gate.
-      if (feature('BRIDGE_MODE') && remoteControlOption !== undefined) {
+      if (false && remoteControlOption !== undefined) {
         const {
           getBridgeDisabledReason
         } = await import('./bridge/bridgeEnabled.js');
@@ -2261,7 +2338,7 @@ async function run(): Promise<CommanderCommand> {
       }
 
       // Check for pending agent memory snapshot updates (only for --agent mode, ant-only)
-      if (feature('AGENT_MEMORY_SNAPSHOT') && mainThreadAgentDefinition && isCustomAgent(mainThreadAgentDefinition) && mainThreadAgentDefinition.memory && mainThreadAgentDefinition.pendingSnapshotUpdate) {
+      if (false && mainThreadAgentDefinition && isCustomAgent(mainThreadAgentDefinition) && mainThreadAgentDefinition.memory && mainThreadAgentDefinition.pendingSnapshotUpdate) {
         const agentDef = mainThreadAgentDefinition;
         const choice = await launchSnapshotUpdateDialog(root, {
           agentType: agentDef.agentType,
@@ -2302,15 +2379,18 @@ async function run(): Promise<CommanderCommand> {
         });
       }
 
+      process.stdout.write('[MAIN] about to validateForceLoginOrg\n');
       // Validate that the active token's org matches forceLoginOrgUUID (if set
       // in managed settings). Runs after onboarding so managed settings and
       // login state are fully loaded.
       const orgValidation = await validateForceLoginOrg();
+      process.stdout.write('[MAIN] validateForceLoginOrg returned\n');
       if (!orgValidation.valid) {
         await exitWithError(root, orgValidation.message);
       }
     }
 
+    process.stdout.write('[MAIN] about to check process.exitCode\n');
     // If gracefulShutdown was initiated (e.g., user rejected trust dialog),
     // process.exitCode will be set. Skip all subsequent operations that could
     // trigger code execution before the process exits (e.g. we don't want apiKeyHelper
@@ -2319,13 +2399,16 @@ async function run(): Promise<CommanderCommand> {
       logForDebugging('Graceful shutdown initiated, skipping further initialization');
       return;
     }
+    process.stdout.write('[MAIN] process.exitCode check passed\n');
 
     // Initialize LSP manager AFTER trust is established (or in non-interactive mode
     // where trust is implicit). This prevents plugin LSP servers from executing
     // code in untrusted directories before user consent.
     // Must be after inline plugins are set (if any) so --plugin-dir LSP servers are included.
     initializeLspServerManager();
+    process.stdout.write('[MAIN] initializeLspServerManager done\n');
 
+    process.stdout.write('[MAIN] about to check settings validation\n');
     // Show settings validation errors after trust is established
     // MCP config errors don't block settings from loading, so exclude them
     if (!isNonInteractiveSession) {
@@ -2340,6 +2423,7 @@ async function run(): Promise<CommanderCommand> {
         });
       }
     }
+    process.stdout.write('[MAIN] settings validation done\n');
 
     // Check quota status, fast mode, passes eligibility, and bootstrap data
     // after trust is established. These make API calls which could trigger
@@ -2383,10 +2467,12 @@ async function run(): Promise<CommanderCommand> {
       void refreshExampleCommands(); // Pre-fetch example commands (runs git log, no API call)
     }
 
+    process.stdout.write('[MAIN] about to await mcpConfigPromise\n');
     // Resolve MCP configs (started early, overlaps with setup/trust dialog work)
     const {
       servers: existingMcpConfigs
     } = await mcpConfigPromise;
+    process.stdout.write('[MAIN] mcpConfigPromise resolved\n');
     logForDebugging(`[STARTUP] MCP configs resolved in ${mcpConfigResolvedMs}ms (awaited at +${Date.now() - mcpConfigStart}ms)`);
     // CLI flag (--mcp-config) should override file-based configs, matching settings precedence
     const allMcpConfigs = {
@@ -2406,6 +2492,7 @@ async function run(): Promise<CommanderCommand> {
       }
     }
     profileCheckpoint('action_mcp_configs_loaded');
+    process.stdout.write('[MAIN] MCP configs loaded\n');
 
     // Prefetch MCP resources after trust dialog (this is where execution happens).
     // Interactive mode only: print mode defers connects until headlessStore exists
@@ -2435,6 +2522,8 @@ async function run(): Promise<CommanderCommand> {
       commands: uniqBy([...local.commands, ...claudeai.commands], 'name')
     }));
 
+
+    process.stdout.write('[MAIN] about to start hooks\n');
     // Start hooks early so they run in parallel with MCP connections.
     // Skip for initOnly/init/maintenance (handled separately), non-interactive
     // (handled via setupTrigger), and resume/continue (conversationRecovery.ts
@@ -2444,6 +2533,8 @@ async function run(): Promise<CommanderCommand> {
       agentType: mainThreadAgentDefinition?.agentType,
       model: resolvedInitialModel
     });
+    process.stdout.write('[MAIN] hooksPromise created\n');
+    process.stdout.write('[MAIN] about to set up MCP promises\n');
 
     // MCP never blocks REPL render OR turn 1 TTFT. useManageMCPConnections
     // populates appState.mcp async as servers connect (connectToServer is
@@ -2492,13 +2583,15 @@ async function run(): Promise<CommanderCommand> {
         }
       }
     }
+    process.stdout.write('[MAIN] thinking config done\n');
     logForDiagnosticsNoPII('info', 'started', {
       version: MACRO.VERSION,
       is_native_binary: isInBundledMode()
     });
-    registerCleanup(async () => {
+    const cleanupFn = async () => {
       logForDiagnosticsNoPII('info', 'exited');
-    });
+    };
+    registerCleanup(cleanupFn);
     void logTenguInit({
       hasInitialPrompt: Boolean(prompt),
       hasStdin: Boolean(inputPrompt),
@@ -2521,13 +2614,15 @@ async function run(): Promise<CommanderCommand> {
       systemPromptFlag: systemPrompt ? options.systemPromptFile ? 'file' : 'flag' : undefined,
       appendSystemPromptFlag: appendSystemPrompt ? options.appendSystemPromptFile ? 'file' : 'flag' : undefined,
       thinkingConfig,
-      assistantActivationPath: feature('KAIROS') && kairosEnabled ? assistantModule?.getAssistantActivationPath() : undefined
+      assistantActivationPath: false && kairosEnabled ? assistantModule?.getAssistantActivationPath() : undefined
     });
 
+    process.stdout.write('[MAIN] about to log context metrics\n');
     // Log context metrics once at initialization
     void logContextMetrics(regularMcpConfigs, toolPermissionContext);
     void logPermissionContextForAnts(null, 'initialization');
     logManagedSettings();
+    process.stdout.write('[MAIN] logging done\n');
 
     // Register PID file for concurrent-session detection (~/.claude/sessions/)
     // and fire multi-clauding telemetry. Lives here (not init.ts) so only the
@@ -2574,6 +2669,7 @@ async function run(): Promise<CommanderCommand> {
         void getGlobExclusionsForPluginCache();
       });
     }
+    process.stdout.write('[MAIN] plugins initialized\n');
     const setupTrigger = initOnly || init ? 'init' : maintenance ? 'maintenance' : null;
     if (initOnly) {
       applyConfigEnvironmentVariables();
@@ -2586,8 +2682,10 @@ async function run(): Promise<CommanderCommand> {
       gracefulShutdownSync(0);
       return;
     }
+    process.stdout.write('[MAIN] initOnly check passed\n');
 
     // --print mode
+    process.stdout.write('[MAIN] about to check isNonInteractiveSession\n');
     if (isNonInteractiveSession) {
       if (outputFormat === 'stream-json' || outputFormat === 'json') {
         setHasFormattedOutput(true);
@@ -2610,7 +2708,8 @@ async function run(): Promise<CommanderCommand> {
       // undefined and the ?? fallback runs). Also skip when setupTrigger is
       // set — those paths run setup hooks first (print.ts:544), and session
       // start hooks must wait until setup completes.
-      const sessionStartHooksPromise = options.continue || options.resume || teleport || setupTrigger ? undefined : processSessionStartHooks('startup');
+      const skipSessionStartHooks = options.continue || options.resume || teleport || setupTrigger;
+      const sessionStartHooksPromise = skipSessionStartHooks ? undefined : processSessionStartHooks('startup');
       // Suppress transient unhandledRejection if this rejects before
       // loadInitialMessages awaits it. Downstream await still observes the
       // rejection — this just prevents the spurious global handler fire.
@@ -2650,7 +2749,7 @@ async function run(): Promise<CommanderCommand> {
         // scheduled tasks and Agent-tool calls ran synchronously — N
         // overdue cron tasks on spawn = N serial subagent turns blocking
         // user input. Computed at :1620, well before this branch.
-        ...(feature('KAIROS') ? {
+        ...(false ? {
           kairosEnabled
         } : {})
       };
@@ -2666,7 +2765,7 @@ async function run(): Promise<CommanderCommand> {
 
       // Async check of auto mode gate — corrects state and disables auto if needed.
       // Gated on TRANSCRIPT_CLASSIFIER (not USER_TYPE) so GrowthBook kill switch runs for external builds too.
-      if (feature('TRANSCRIPT_CLASSIFIER')) {
+      if (false) {
         void verifyAutoModeGateAccess(toolPermissionContext, headlessStore.getState().fastMode).then(({
           updateContext
         }) => {
@@ -2828,9 +2927,8 @@ async function run(): Promise<CommanderCommand> {
       }
       logSessionTelemetry();
       profileCheckpoint('before_print_import');
-      const {
-        runHeadless
-      } = await import('src/cli/print.js');
+      const printModule = await import('./cli/print.js');
+      const { runHeadless } = printModule;
       profileCheckpoint('after_print_import');
       void runHeadless(inputPrompt, () => headlessStore.getState(), headlessStore.setState, commandsHeadless, tools, sdkMcpConfigs, agentDefinitions.activeAgents, {
         continue: options.continue,
@@ -2865,6 +2963,8 @@ async function run(): Promise<CommanderCommand> {
       });
       return;
     }
+
+    // INTERACTIVE MODE (not --print mode)
 
     // Log model config at startup
     logEvent('tengu_startup_manual_model_config', {
@@ -2918,10 +3018,10 @@ async function run(): Promise<CommanderCommand> {
     };
     // All startup opt-in paths (--tools, --brief, defaultView) have fired
     // above; initialIsBriefOnly just reads the resulting state.
-    const initialIsBriefOnly = feature('KAIROS') || feature('KAIROS_BRIEF') ? getUserMsgOptIn() : false;
+    const initialIsBriefOnly = false || false ? getUserMsgOptIn() : false;
     const fullRemoteControl = remoteControl || getRemoteControlAtStartup() || kairosEnabled;
     let ccrMirrorEnabled = false;
-    if (feature('CCR_MIRROR') && !fullRemoteControl) {
+    if (false && !fullRemoteControl) {
       /* eslint-disable @typescript-eslint/no-require-imports */
       const {
         isCcrMirrorEnabled
@@ -3030,6 +3130,14 @@ async function run(): Promise<CommanderCommand> {
       effortValue: parseEffortValue(options.effort) ?? getInitialEffortSetting(),
       activeOverlays: new Set<string>(),
       fastMode: getInitialFastModeSetting(resolvedInitialModel),
+      terminalPanelVisible: true,
+      terminalSession: {
+        status: 'idle' as const,
+        cwd: process.cwd(),
+        ptyPid: null,
+        outputBuffer: '',
+        lastOutputAt: 0,
+      },
       ...(isAdvisorEnabled() && advisorModel && {
         advisorModel
       }),
@@ -3038,7 +3146,7 @@ async function run(): Promise<CommanderCommand> {
       // KAIROS block so Agent(name: "foo") can spawn in-process teammates
       // without TeamCreate. computeInitialTeamContext() is for tmux-spawned
       // teammates reading their own identity, not the assistant-mode leader.
-      teamContext: feature('KAIROS') ? assistantTeamContext ?? computeInitialTeamContext?.() : computeInitialTeamContext?.()
+      teamContext: false ? assistantTeamContext ?? computeInitialTeamContext?.() : computeInitialTeamContext?.()
     };
 
     // Add CLI initial prompt to history
@@ -3159,7 +3267,7 @@ async function run(): Promise<CommanderCommand> {
         logError(error);
         process.exit(1);
       }
-    } else if (feature('DIRECT_CONNECT') && _pendingConnect?.url) {
+    } else if (false && _pendingConnect?.url) {
       // `claude connect <url>` — full interactive TUI connected to a remote server
       let directConnectConfig;
       try {
@@ -3196,7 +3304,7 @@ async function run(): Promise<CommanderCommand> {
         thinkingConfig
       }, renderAndRun);
       return;
-    } else if (feature('SSH_REMOTE') && _pendingSSH?.host) {
+    } else if (false && _pendingSSH?.host) {
       // `claude ssh <host> [dir]` — probe remote, deploy binary if needed,
       // spawn ssh with unix-socket -R forward to a local auth proxy, hand
       // the REPL an SSHSession. Tools run remotely, UI renders locally.
@@ -3262,7 +3370,7 @@ async function run(): Promise<CommanderCommand> {
         thinkingConfig
       }, renderAndRun);
       return;
-    } else if (feature('KAIROS') && _pendingAssistantChat && (_pendingAssistantChat.sessionId || _pendingAssistantChat.discover)) {
+    } else if (false && _pendingAssistantChat && (_pendingAssistantChat.sessionId || _pendingAssistantChat.discover)) {
       // `claude assistant [sessionId]` — REPL as a pure viewer client
       // of a remote assistant session. The agentic loop runs remotely; this
       // process streams live events and POSTs messages. History is lazy-
@@ -3764,6 +3872,7 @@ async function run(): Promise<CommanderCommand> {
         });
       }
     } else {
+      process.stdout.write('[MAIN] entering interactive mode (launchRepl)\n');
       // Pass unresolved hooks promise to REPL so it can render immediately
       // instead of blocking ~500ms waiting for SessionStart hooks to finish.
       // REPL will inject hook messages when they resolve and await them before
@@ -3773,7 +3882,7 @@ async function run(): Promise<CommanderCommand> {
       maybeActivateProactive(options);
       maybeActivateBrief(options);
       // Persist the current mode for fresh sessions so future resumes know what mode was used
-      if (feature('COORDINATOR_MODE')) {
+      if (false) {
         saveMode(coordinatorModeModule?.isCoordinatorMode() ? 'coordinator' : 'normal');
       }
 
@@ -3784,7 +3893,7 @@ async function run(): Promise<CommanderCommand> {
       // prompt — and the working directory / CLAUDE.md it implies — came
       // from an external source rather than something they typed.
       let deepLinkBanner: ReturnType<typeof createSystemMessage> | null = null;
-      if (feature('LODESTONE')) {
+      if (false) {
         if (options.deepLinkOrigin) {
           logEvent('tengu_deep_link_opened', {
             has_prefill: Boolean(options.prefill),
@@ -3801,6 +3910,7 @@ async function run(): Promise<CommanderCommand> {
         }
       }
       const initialMessages = deepLinkBanner ? [deepLinkBanner, ...hookMessages] : hookMessages.length > 0 ? hookMessages : undefined;
+      process.stdout.write('[MAIN] about to call launchRepl\n');
       await launchRepl(root, {
         getFpsMetrics,
         stats,
@@ -3832,22 +3942,22 @@ async function run(): Promise<CommanderCommand> {
     program.addOption(new Option('--tasks [id]', '[ANT-ONLY] Tasks mode: watch for tasks and auto-process them. Optional id is used as both the task list ID and agent ID (defaults to "tasklist").').argParser(String).hideHelp());
     program.option('--agent-teams', '[ANT-ONLY] Force Claude to use multi-agent mode for solving problems', () => true);
   }
-  if (feature('TRANSCRIPT_CLASSIFIER')) {
+  if (false) {
     program.addOption(new Option('--enable-auto-mode', 'Opt in to auto mode').hideHelp());
   }
-  if (feature('PROACTIVE') || feature('KAIROS')) {
+  if (false || false) {
     program.addOption(new Option('--proactive', 'Start in proactive autonomous mode'));
   }
-  if (feature('UDS_INBOX')) {
+  if (false) {
     program.addOption(new Option('--messaging-socket-path <path>', 'Unix domain socket path for the UDS messaging server (defaults to a tmp path)'));
   }
-  if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
+  if (false || false) {
     program.addOption(new Option('--brief', 'Enable SendUserMessage tool for agent-to-user communication'));
   }
-  if (feature('KAIROS')) {
+  if (false) {
     program.addOption(new Option('--assistant', 'Force assistant mode (Agent SDK daemon use)').hideHelp());
   }
-  if (feature('KAIROS') || feature('KAIROS_CHANNELS')) {
+  if (false || false) {
     program.addOption(new Option('--channels <servers...>', 'MCP servers whose channel notifications (inbound push) should register this session. Space-separated server names.').hideHelp());
     program.addOption(new Option('--dangerously-load-development-channels <servers...>', 'Load channel servers not on the approved allowlist. For local channel development only. Shows a confirmation dialog at startup.').hideHelp());
   }
@@ -3869,11 +3979,11 @@ async function run(): Promise<CommanderCommand> {
   // Enable teleport/remote flags for all builds but keep them undocumented until GA
   program.addOption(new Option('--teleport [session]', 'Resume a teleport session, optionally specify session ID').hideHelp());
   program.addOption(new Option('--remote [description]', 'Create a remote session with the given description').hideHelp());
-  if (feature('BRIDGE_MODE')) {
+  if (false) {
     program.addOption(new Option('--remote-control [name]', 'Start an interactive session with Remote Control enabled (optionally named)').argParser(value => value || true).hideHelp());
     program.addOption(new Option('--rc [name]', 'Alias for --remote-control').argParser(value => value || true).hideHelp());
   }
-  if (feature('HARD_FAIL')) {
+  if (false) {
     program.addOption(new Option('--hard-fail', 'Crash on logError calls instead of silently logging').hideHelp());
   }
   profileCheckpoint('run_main_options_built');
@@ -3964,7 +4074,7 @@ async function run(): Promise<CommanderCommand> {
   });
 
   // claude server
-  if (feature('DIRECT_CONNECT')) {
+  if (false) {
     program.command('server').description('Start a Claude Code session server').option('--port <number>', 'HTTP port', '0').option('--host <string>', 'Bind address', '0.0.0.0').option('--auth-token <token>', 'Bearer token for auth').option('--unix <path>', 'Listen on a unix domain socket').option('--workspace <dir>', 'Default working directory for sessions that do not specify cwd').option('--idle-timeout <ms>', 'Idle timeout for detached sessions in ms (0 = never expire)', '600000').option('--max-sessions <n>', 'Maximum concurrent sessions (0 = unlimited)', '32').action(async (opts: {
       port: string;
       host: string;
@@ -4048,7 +4158,7 @@ async function run(): Promise<CommanderCommand> {
   // (parallels the DIRECT_CONNECT/cc:// pattern above). If commander reaches
   // this action it means the argv rewrite didn't fire (e.g. user ran
   // `claude ssh` with no host) — just print usage.
-  if (feature('SSH_REMOTE')) {
+  if (false) {
     program.command('ssh <host> [dir]').description('Run Claude Code on a remote host over SSH. Deploys the binary and ' + 'tunnels API auth back through your local machine — no remote setup needed.').option('--permission-mode <mode>', 'Permission mode for the remote session').option('--dangerously-skip-permissions', 'Skip all permission prompts on the remote (dangerous)').option('--local', 'e2e test mode — spawn the child CLI locally (skip ssh/deploy). ' + 'Exercises the auth proxy and unix-socket plumbing without a remote host.').action(async () => {
       // Argv rewriting in main() should have consumed `ssh <host>` before
       // commander runs. Reaching here means host was missing or the
@@ -4061,7 +4171,7 @@ async function run(): Promise<CommanderCommand> {
   // claude connect — subcommand only handles -p (headless) mode.
   // Interactive mode (without -p) is handled by early argv rewriting in main()
   // which redirects to the main command with full TUI support.
-  if (feature('DIRECT_CONNECT')) {
+  if (false) {
     program.command('open <cc-url>').description('Connect to a Claude Code server (internal — use cc:// URLs)').option('-p, --print [prompt]', 'Print mode (headless)').option('--output-format <format>', 'Output format: text, json, stream-json', 'text').action(async (ccUrl: string, opts: {
       print?: string | boolean;
       outputFormat: string;
@@ -4288,7 +4398,7 @@ async function run(): Promise<CommanderCommand> {
     await agentsHandler();
     process.exit(0);
   });
-  if (feature('TRANSCRIPT_CLASSIFIER')) {
+  if (false) {
     // Skip when tengu_auto_mode_config.enabled === 'disabled' (circuit breaker).
     // Reads from disk cache — GrowthBook isn't initialized at registration time.
     if (getAutoModeEnabledStateIfCached() !== 'disabled') {
@@ -4325,7 +4435,7 @@ async function run(): Promise<CommanderCommand> {
   // false via the try/catch — but not before paying ~65ms of side effects
   // (25ms settings Zod parse + 40ms sync `security` keychain subprocess).
   // The dynamic visibility never worked; the command was always hidden.
-  if (feature('BRIDGE_MODE')) {
+  if (false) {
     program.command('remote-control', {
       hidden: true
     }).alias('rc').description('Connect your local environment for remote-control sessions via claude.ai/code').action(async () => {
@@ -4337,7 +4447,7 @@ async function run(): Promise<CommanderCommand> {
       await bridgeMain(process.argv.slice(3));
     });
   }
-  if (feature('KAIROS')) {
+  if (false) {
     program.command('assistant [sessionId]').description('Attach the REPL as a client to a running bridge session. Discovers sessions via API if no sessionId given.').action(() => {
       // Argv rewriting above should have consumed `assistant [id]`
       // before commander runs. Reaching here means a root flag came first
@@ -4507,7 +4617,11 @@ Examples:
     });
   }
   profileCheckpoint('run_before_parse');
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] About to parseAsync');
   await program.parseAsync(process.argv);
+  // biome-ignore lint/suspicious/noConsole: <explanation>
+  console.error('[DEBUG] After parseAsync');
   profileCheckpoint('run_after_parse');
 
   // Record final checkpoint for total_time calculation
@@ -4596,7 +4710,7 @@ async function logTenguInit({
         appendSystemPromptFlag: appendSystemPromptFlag as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       }),
       is_simple: isBareMode() || undefined,
-      is_coordinator: feature('COORDINATOR_MODE') && coordinatorModeModule?.isCoordinatorMode() ? true : undefined,
+      is_coordinator: false && coordinatorModeModule?.isCoordinatorMode() ? true : undefined,
       ...(assistantActivationPath && {
         assistantActivationPath: assistantActivationPath as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       }),
@@ -4615,7 +4729,7 @@ async function logTenguInit({
   }
 }
 function maybeActivateProactive(options: unknown): void {
-  if ((feature('PROACTIVE') || feature('KAIROS')) && ((options as {
+  if ((false || false) && ((options as {
     proactive?: boolean;
   }).proactive || isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE))) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -4626,7 +4740,7 @@ function maybeActivateProactive(options: unknown): void {
   }
 }
 function maybeActivateBrief(options: unknown): void {
-  if (!(feature('KAIROS') || feature('KAIROS_BRIEF'))) return;
+  if (!(false || false)) return;
   const briefFlag = (options as {
     brief?: boolean;
   }).brief;

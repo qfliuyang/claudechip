@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { getInvokedSkillsForAgent } from '../../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import {
@@ -174,7 +174,7 @@ Output <updates>[]</updates> if no updates are needed.`,
 
 export function initSkillImprovement(): void {
   if (
-    feature('SKILL_IMPROVEMENT') &&
+    false &&
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_copper_panda', false)
   ) {
     registerPostSamplingHook(createSkillImprovementHook())

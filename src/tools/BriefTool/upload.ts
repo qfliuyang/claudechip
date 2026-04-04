@@ -12,7 +12,7 @@
  * isImage}, so local-terminal and same-machine-desktop render unaffected.
  */
 
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import axios from 'axios'
 import { randomUUID } from 'crypto'
 import { readFile } from 'fs/promises'
@@ -60,7 +60,7 @@ function debug(msg: string): void {
 /**
  * Base URL for uploads. Must match the host the token is valid for.
  *
- * Subprocess hosts (cowork) pass ANTHROPIC_BASE_URL alongside
+ * Subprocess hosts (cowork) pass CLAUDECHIP_BASE_URL alongside
  * CLAUDE_CODE_OAUTH_TOKEN — prefer that since getOauthConfig() only
  * returns staging when USE_STAGING_OAUTH is set, which such hosts don't
  * set. Without this a staging token hits api.anthropic.com → 401 → silent
@@ -69,7 +69,7 @@ function debug(msg: string): void {
 function getBridgeBaseUrl(): string {
   return (
     getBridgeBaseUrlOverride() ??
-    process.env.ANTHROPIC_BASE_URL ??
+    process.env.CLAUDECHIP_BASE_URL ??
     getOauthConfig().BASE_API_URL
   )
 }
@@ -96,7 +96,7 @@ export async function uploadBriefAttachment(
 ): Promise<string | undefined> {
   // Positive pattern so bun:bundle eliminates the entire body from
   // non-BRIDGE_MODE builds (negative `if (!feature(...)) return` does not).
-  if (feature('BRIDGE_MODE')) {
+  if (false) {
     if (!ctx.replBridgeEnabled) return undefined
 
     if (size > MAX_UPLOAD_BYTES) {

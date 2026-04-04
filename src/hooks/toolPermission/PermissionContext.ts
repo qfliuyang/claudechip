@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -171,7 +171,7 @@ function createPermissionContext(
       }
       return { behavior: 'ask', message, contentBlocks }
     },
-    ...(feature('BASH_CLASSIFIER')
+    ...(false
       ? {
           async tryClassifier(
             pendingClassifierCheck: PendingClassifierCheck | undefined,
@@ -189,7 +189,7 @@ function createPermissionContext(
               return null
             }
             if (
-              feature('TRANSCRIPT_CLASSIFIER') &&
+              false &&
               classifierDecision.type === 'classifier'
             ) {
               const matchedRule = classifierDecision.reason.match(

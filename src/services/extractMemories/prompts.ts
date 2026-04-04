@@ -9,7 +9,7 @@
  * overlap the system prompt's harmlessly.
  */
 
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import {
   MEMORY_FRONTMATTER_EXAMPLE,
   TYPES_SECTION_COMBINED,
@@ -103,7 +103,7 @@ export function buildExtractCombinedPrompt(
   existingMemories: string,
   skipIndex = false,
 ): string {
-  if (!feature('TEAMMEM')) {
+  if (!false) {
     return buildExtractAutoOnlyPrompt(
       newMessageCount,
       existingMemories,

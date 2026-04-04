@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang - causes hang
 import memoize from 'lodash-es/memoize.js'
 import {
   getAdditionalDirectoriesForClaudeMd,
@@ -128,9 +128,8 @@ export const getSystemContext = memoize(
         : await getGitStatus()
 
     // Include system prompt injection if set (for cache breaking, ant-only)
-    const injection = feature('BREAK_CACHE_COMMAND')
-      ? getSystemPromptInjection()
-      : null
+    // SKIPPED: false - causes hang
+    const injection = null
 
     logForDiagnosticsNoPII('info', 'system_context_completed', {
       duration_ms: Date.now() - startTime,
@@ -140,11 +139,7 @@ export const getSystemContext = memoize(
 
     return {
       ...(gitStatus && { gitStatus }),
-      ...(feature('BREAK_CACHE_COMMAND') && injection
-        ? {
-            cacheBreaker: `[CACHE_BREAKER: ${injection}]`,
-          }
-        : {}),
+      // SKIPPED: false - causes hang
     }
   },
 )

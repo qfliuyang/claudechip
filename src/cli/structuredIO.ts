@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: // SKIPPED: import { feature } from 'bun:bundle'; - causes hang - causes hang
 import type {
   ElicitResult,
   JSONRPCMessage,
@@ -69,7 +69,7 @@ function serializeDecisionReason(
   }
 
   if (
-    (feature('BASH_CLASSIFIER') || feature('TRANSCRIPT_CLASSIFIER')) &&
+    (false || false) &&
     reason.type === 'classifier'
   ) {
     return reason.reason

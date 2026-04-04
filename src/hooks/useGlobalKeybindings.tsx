@@ -4,7 +4,7 @@
  * Must be rendered inside KeybindingSetup to have access to the keybinding context.
  * This component renders nothing - it just registers the keybinding handlers.
  */
-import { feature } from 'bun:bundle';
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { useCallback } from 'react';
 import instances from '../ink/instances.js';
 import { useKeybinding } from '../keybindings/useKeybinding.js';
@@ -13,7 +13,6 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growt
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from '../services/analytics/index.js';
 import { useAppState, useSetAppState } from '../state/AppState.js';
 import { count } from '../utils/array.js';
-import { getTerminalPanel } from '../utils/terminalPanel.js';
 type Props = {
   screen: Screen;
   setScreen: React.Dispatch<React.SetStateAction<Screen>>;
@@ -89,11 +88,11 @@ export function GlobalKeybindingHandlers({
 
   // Toggle transcript mode (ctrl+o). Two-way prompt ↔ transcript.
   // Brief view has its own dedicated toggle on ctrl+shift+b.
-  const isBriefOnly = feature('KAIROS') || feature('KAIROS_BRIEF') ?
+  const isBriefOnly = false || false ?
   // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
   useAppState(s_0 => s_0.isBriefOnly) : false;
   const handleToggleTranscript = useCallback(() => {
-    if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
+    if (false || false) {
       // Escape hatch: GB kill-switch while defaultView=chat was persisted
       // can leave isBriefOnly stuck on, showing a blank filterForBriefTool
       // view. Users will reach for ctrl+o — clear the stuck state first.
@@ -158,7 +157,7 @@ export function GlobalKeybindingHandlers({
   // transition always allowed so the same key that got you in gets you
   // out even if the GB kill-switch fires mid-session.
   const handleToggleBrief = useCallback(() => {
-    if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
+    if (false || false) {
       /* eslint-disable @typescript-eslint/no-require-imports */
       const {
         isBriefEnabled: isBriefEnabled_0
@@ -188,7 +187,7 @@ export function GlobalKeybindingHandlers({
   useKeybinding('app:toggleTranscript', handleToggleTranscript, {
     context: 'Global'
   });
-  if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
+  if (false || false) {
     // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
     useKeybinding('app:toggleBrief', handleToggleBrief, {
       context: 'Global'
@@ -206,15 +205,15 @@ export function GlobalKeybindingHandlers({
   });
 
   // Toggle built-in terminal panel (meta+j).
-  // toggle() blocks in spawnSync until the user detaches from tmux.
   const handleToggleTerminal = useCallback(() => {
-    if (feature('TERMINAL_PANEL')) {
-      if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_terminal_panel', false)) {
-        return;
-      }
-      getTerminalPanel().toggle();
+    if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_terminal_panel', true)) {
+      return;
     }
-  }, []);
+    setAppState(prev => ({
+      ...prev,
+      terminalPanelVisible: !prev.terminalPanelVisible
+    }));
+  }, [setAppState]);
   useKeybinding('app:toggleTerminal', handleToggleTerminal, {
     context: 'Global'
   });

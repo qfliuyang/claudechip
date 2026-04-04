@@ -1,4 +1,4 @@
-import { feature } from 'bun:bundle'
+// SKIPPED: import { feature } from 'bun:bundle'; - causes hang
 import { ASYNC_AGENT_ALLOWED_TOOLS } from '../constants/tools.js'
 import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
@@ -34,7 +34,7 @@ const INTERNAL_WORKER_TOOLS = new Set([
 ])
 
 export function isCoordinatorMode(): boolean {
-  if (feature('COORDINATOR_MODE')) {
+  if (false) {
     return isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE)
   }
   return false
