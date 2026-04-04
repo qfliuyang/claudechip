@@ -17,8 +17,9 @@ export function createTerminalPty(
   cols: number,
   rows: number,
 ): IPty {
-  // Spawn Node.js subprocess to manage the PTY (Bun has compatibility issues with node-pty)
-  const nodePath = process.execPath // Use the current Node.js executable
+  // Spawn a real Node.js subprocess to manage the PTY. When the app runs under
+  // Bun, process.execPath points at Bun, which cannot host node-pty reliably.
+  const nodePath = process.env.CLAUDECHIP_NODE_PATH || 'node'
   const scriptPath = new URL('./terminalPtyNode.ts', import.meta.url).pathname
 
   const child = spawn(nodePath, ['--import', 'tsx/esm', scriptPath], {
@@ -30,11 +31,16 @@ export function createTerminalPty(
   const emitter = new EventEmitter()
   let pid = 0
   let exited = false
+  let stdoutBuffer = ''
 
   // Handle data from subprocess
   child.stdout.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n').filter(l => l.trim())
+    stdoutBuffer += data.toString('utf-8')
+    const lines = stdoutBuffer.split('\n')
+    stdoutBuffer = lines.pop() ?? ''
+
     for (const line of lines) {
+      if (!line.trim()) continue
       try {
         const msg = JSON.parse(line)
         if (msg.type === 'data') {
@@ -50,14 +56,17 @@ export function createTerminalPty(
         } else if (msg.type === 'error') {
           console.error('[PTY Subprocess Error]', msg.error)
         }
-      } catch (e) {
-        // Ignore parse errors for non-JSON lines
+      } catch {
+        console.error('[PTY Subprocess Parse Error]', line)
       }
     }
   })
 
   child.stderr.on('data', (data: Buffer) => {
-    // Suppress stderr from subprocess
+    const text = data.toString('utf-8').trim()
+    if (text) {
+      console.error('[PTY Subprocess STDERR]', text)
+    }
   })
 
   child.on('exit', (code) => {
@@ -69,7 +78,9 @@ export function createTerminalPty(
 
   // Send spawn command
   setTimeout(() => {
-    child.stdin.write(JSON.stringify({ type: 'spawn', shell, cwd, cols, rows }) + '\n')
+    if (child.stdin.writable) {
+      child.stdin.write(JSON.stringify({ type: 'spawn', shell, cwd, cols, rows }) + '\n')
+    }
   }, 100)
 
   return {

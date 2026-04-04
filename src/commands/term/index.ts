@@ -3,7 +3,8 @@ import type { Command } from '../../commands.js'
 const term: Command = {
   type: 'local-jsx',
   name: 'term',
-  description: 'Send a command to the integrated terminal panel',
+  description: 'Manage and control the integrated terminal session',
+  argumentHint: '[run|send|read|status|focus|restart|interrupt] ...',
   load: () => import('./term.js'),
 }
 

@@ -18,6 +18,7 @@
     "dev": "bun run ./src/dev-entry.ts",
     "start": "bun run ./src/dev-entry.ts",
     "version": "bun run ./src/dev-entry.ts --version",
+    "test:pty": "bun test ./tests/terminalPty.test.ts",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/*/spawn-helper ~/.bun/install/cache/node-pty@*/prebuilds/*/spawn-helper 2>/dev/null || true"
   },
   "dependencies": {

@@ -42,14 +42,15 @@ export function createTerminalPty(
 // If this file is run directly as a subprocess, start IPC mode
 if (import.meta.url === `file://${process.argv[1]}`) {
   let pty: nodePty.IPty | null = null
+  let stdinBuffer = ''
 
   process.stdin.on('data', (data: Buffer) => {
-    const message = data.toString()
-
-    // Handle multiple messages that might be buffered together
-    const lines = message.split('\n').filter(l => l.trim())
+    stdinBuffer += data.toString('utf-8')
+    const lines = stdinBuffer.split('\n')
+    stdinBuffer = lines.pop() ?? ''
 
     for (const line of lines) {
+      if (!line.trim()) continue
       try {
         const cmd = JSON.parse(line)
 

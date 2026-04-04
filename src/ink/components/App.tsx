@@ -16,6 +16,7 @@ import { getTerminalFocused, setTerminalFocused } from '../terminal-focus-state.
 import { TerminalQuerier, xtversion } from '../terminal-querier.js';
 import { DISABLE_KITTY_KEYBOARD, DISABLE_MODIFY_OTHER_KEYS, ENABLE_KITTY_KEYBOARD, ENABLE_MODIFY_OTHER_KEYS, FOCUS_IN, FOCUS_OUT } from '../termio/csi.js';
 import { DBP, DFE, DISABLE_MOUSE_TRACKING, EBP, EFE, HIDE_CURSOR, SHOW_CURSOR } from '../termio/dec.js';
+import { isTerminalPanelFocused } from '../../utils/terminalPanelFocus.js';
 import AppContext from './AppContext.js';
 import { ClockProvider } from './ClockContext.js';
 import CursorDeclarationContext, { type CursorDeclarationSetter } from './CursorDeclarationContext.js';
@@ -395,7 +396,7 @@ export default class App extends PureComponent<Props, State> {
   };
   handleInput = (input: string | undefined): void => {
     // Exit on Ctrl+C
-    if (input === '\x03' && this.props.exitOnCtrlC) {
+    if (input === '\x03' && this.props.exitOnCtrlC && !isTerminalPanelFocused()) {
       this.handleExit();
     }
 

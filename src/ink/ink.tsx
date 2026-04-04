@@ -178,44 +178,27 @@ export default class Ink {
     y: number;
   } | null = null;
   constructor(private readonly options: Options) {
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[INK] constructor start');
     autoBind(this);
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[INK] after autoBind');
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[INK] about to patchConsole');
     if (this.options.patchConsole) {
       this.restoreConsole = this.patchConsole();
-      process.stdout.write('[INK] after patchConsole, about to patchStderr\n');
       this.restoreStderr = this.patchStderr();
-      process.stdout.write('[INK] after patchStderr\n');
     }
-    process.stdout.write('[INK] after patchConsole\n');
     this.terminal = {
       stdout: options.stdout,
       stderr: options.stderr
     };
-    process.stdout.write('[INK] about to get columns/rows\n');
     this.terminalColumns = options.stdout.columns || 80;
     this.terminalRows = options.stdout.rows || 24;
-    process.stdout.write('[INK] about to makeAltScreenParkPatch\n');
     this.altScreenParkPatch = makeAltScreenParkPatch(this.terminalRows);
-    process.stdout.write('[INK] about to create pools\n');
     this.stylePool = new StylePool();
     this.charPool = new CharPool();
     this.hyperlinkPool = new HyperlinkPool();
-    process.stdout.write('[INK] about to create frames\n');
     this.frontFrame = emptyFrame(this.terminalRows, this.terminalColumns, this.stylePool, this.charPool, this.hyperlinkPool);
     this.backFrame = emptyFrame(this.terminalRows, this.terminalColumns, this.stylePool, this.charPool, this.hyperlinkPool);
-    process.stdout.write('[INK] about to create LogUpdate\n');
     this.log = new LogUpdate({
       isTTY: options.stdout.isTTY as boolean | undefined || false,
       stylePool: this.stylePool
     });
-    process.stdout.write('[INK] after LogUpdate\n');
-
-    process.stdout.write('[INK] about to create deferredRender\n');
     // scheduleRender is called from the reconciler's resetAfterCommit, which
     // runs BEFORE React's layout phase (ref attach + useLayoutEffect). Any
     // state set in layout effects — notably the cursorDeclaration from
@@ -225,13 +208,11 @@ export default class Ink {
     // a one-keystroke lag. Same event-loop tick, so throughput is unchanged.
     // Test env uses onImmediateRender (direct onRender, no throttle) so
     // existing synchronous lastFrame() tests are unaffected.
-    process.stdout.write('[INK] about to create deferredRender\n');
     const deferredRender = (): void => queueMicrotask(this.onRender);
     this.scheduleRender = throttle(deferredRender, FRAME_INTERVAL_MS, {
       leading: true,
       trailing: true
     });
-    process.stdout.write('[INK] after scheduleRender setup\n');
 
     // Ignore last render after unmounting a tree to prevent empty output before exit
     this.isUnmounted = false;
@@ -240,7 +221,6 @@ export default class Ink {
     this.unsubscribeExit = onExit(this.unmount, {
       alwaysLast: false
     });
-    process.stdout.write('[INK] after onExit setup\n');
     if (options.stdout.isTTY) {
       options.stdout.on('resize', this.handleResize);
       process.on('SIGCONT', this.handleResume);
@@ -249,19 +229,12 @@ export default class Ink {
         process.off('SIGCONT', this.handleResume);
       };
     }
-    process.stdout.write('[INK] about to create rootNode\n');
     this.rootNode = dom.createNode('ink-root');
-    process.stdout.write('[INK] after create rootNode\n');
-    process.stdout.write('[INK] about to create focusManager\n');
     this.focusManager = new FocusManager((target, event) => dispatcher.dispatchDiscrete(target, event));
-    process.stdout.write('[INK] after focusManager\n');
     this.rootNode.focusManager = this.focusManager;
-    process.stdout.write('[INK] about to create renderer\n');
     this.renderer = createRenderer(this.rootNode, this.stylePool);
-    process.stdout.write('[INK] after renderer\n');
     this.rootNode.onRender = this.scheduleRender;
     this.rootNode.onImmediateRender = this.onRender;
-    process.stdout.write('[INK] after onRender assignments\n');
     this.rootNode.onComputeLayout = () => {
       // Calculate layout during React's commit phase so useLayoutEffect hooks
       // have access to fresh layout data
@@ -283,7 +256,6 @@ export default class Ink {
       }
     };
 
-    process.stdout.write('[INK] about to create reconciler container\n');
     // @ts-expect-error @types/react-reconciler@0.32.3 declares 11 args with transitionCallbacks,
     // but react-reconciler 0.33.0 source only accepts 10 args (no transitionCallbacks)
     this.container = reconciler.createContainer(this.rootNode, ConcurrentRoot, null, false, null, 'id', noop,
@@ -294,7 +266,6 @@ export default class Ink {
     // onRecoverableError
     noop // onDefaultTransitionIndicator
     );
-    process.stdout.write('[INK] after reconciler container\n');
     if ("production" === 'development') {
       reconciler.injectIntoDevTools({
         bundleType: 0,
@@ -304,7 +275,6 @@ export default class Ink {
         rendererPackageName: 'ink'
       });
     }
-    process.stdout.write('[INK] constructor end\n');
   }
   private handleResume = () => {
     if (!this.options.stdout.isTTY) {
@@ -1601,26 +1571,20 @@ export default class Ink {
     // biome-ignore lint/suspicious/noConsole: intentionally patching global console
     const con = console;
     const originals: Partial<Record<keyof Console, Console[keyof Console]>> = {};
-    // Use process.stderr.write directly to avoid recursive issues during patching
-    process.stderr.write('[INK] patchConsole: creating toDebug/toError\n');
     const toDebug = (...args: unknown[]) => logForDebugging(`console.log: ${format(...args)}`);
     const toError = (...args: unknown[]) => logError(new Error(`console.error: ${format(...args)}`));
-    process.stderr.write('[INK] patchConsole: about to patch stdout methods\n');
     for (const m of CONSOLE_STDOUT_METHODS) {
       originals[m] = con[m];
       con[m] = toDebug;
     }
-    process.stderr.write('[INK] patchConsole: about to patch stderr methods\n');
     for (const m of CONSOLE_STDERR_METHODS) {
       originals[m] = con[m];
       con[m] = toError;
     }
-    process.stderr.write('[INK] patchConsole: about to patch assert\n');
     originals.assert = con.assert;
     con.assert = (condition: unknown, ...args: unknown[]) => {
       if (!condition) toError(...args);
     };
-    process.stderr.write('[INK] patchConsole: done\n');
     return () => Object.assign(con, originals);
   }
 
@@ -1640,7 +1604,6 @@ export default class Ink {
     const stderr = process.stderr;
     const originalWrite = stderr.write;
     let reentered = false;
-    process.stdout.write('[INK] patchStderr: creating intercept function\n');
     const intercept = (chunk: Uint8Array | string, encodingOrCb?: BufferEncoding | ((err?: Error) => void), cb?: (err?: Error) => void): boolean => {
       const callback = typeof encodingOrCb === 'function' ? encodingOrCb : cb;
       // Reentrancy guard: logForDebugging → writeToStderr → here. Pass
@@ -1653,29 +1616,20 @@ export default class Ink {
       reentered = true;
       try {
         const text = typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
-        process.stdout.write(`[INK] intercept: got text len=${text.length}\n`);
-        process.stdout.write('[INK] intercept: about to call logForDebugging\n');
         logForDebugging(`[stderr] ${text}`, {
           level: 'warn'
         });
-        process.stdout.write('[INK] intercept: after logForDebugging\n');
         if (this.altScreenActive && !this.isUnmounted && !this.isPaused) {
           this.prevFrameContaminated = true;
           this.scheduleRender();
         }
       } finally {
-        process.stdout.write('[INK] intercept: in finally block\n');
         reentered = false;
-        process.stdout.write('[INK] intercept: about to call callback\n');
         callback?.();
-        process.stdout.write('[INK] intercept: after callback\n');
       }
-      process.stdout.write('[INK] intercept: returning true\n');
       return true;
     };
-    process.stdout.write('[INK] patchStderr: assigning intercept to stderr.write\n');
     stderr.write = intercept;
-    process.stdout.write('[INK] patchStderr: about to return cleanup function\n');
     return () => {
       if (stderr.write === intercept) {
         stderr.write = originalWrite;

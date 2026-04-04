@@ -148,6 +148,4 @@ if (missingImports.length > 0) {
 
 // Route through the original CLI bootstrap so the exported `main()` is
 // actually invoked. Importing `main.tsx` directly only evaluates the module.
-console.log('[DEV-ENTRY] About to import cli.tsx...')
 await import('./entrypoints/cli.tsx')
-console.log('[DEV-ENTRY] cli.tsx imported successfully')

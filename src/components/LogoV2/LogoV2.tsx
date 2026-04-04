@@ -71,6 +71,7 @@ export function LogoV2() {
   const showOverageCreditUpsell = useShowOverageCreditUpsell();
   const agent = useAppState(_temp);
   const effortValue = useAppState(_temp2);
+  const terminalPanelVisible = useAppState(_temp4);
   const config = getGlobalConfig();
   let changelog;
   try {
@@ -246,7 +247,9 @@ export function LogoV2() {
     }
     return t23;
   }
-  const layoutMode = getLayoutMode(columns);
+  const layoutMode = terminalPanelVisible
+    ? 'compact'
+    : getLayoutMode(columns);
   const userTheme = resolveThemeSetting(getGlobalConfig().theme);
   const borderTitle = ` ${color("claude", userTheme)("Claude Code")} ${color("inactive", userTheme)(`v${version}`)} `;
   const compactBorderTitle = color("claude", userTheme)(" Claude Code ");
@@ -536,6 +539,9 @@ function _temp3(current) {
 }
 function _temp2(s_0) {
   return s_0.effortValue;
+}
+function _temp4(s_0) {
+  return s_0.terminalPanelVisible;
 }
 function _temp(s) {
   return s.agent;

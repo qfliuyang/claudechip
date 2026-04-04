@@ -1,5 +1,6 @@
 import { z } from 'zod/v4';
 import type { Tool } from '../../Tool.js';
+import { terminalToolWrite } from '../../terminal/adapters/TerminalToolsAdapter.js';
 
 const InputSchema = z.object({
   text: z.string().describe('Text or command to send to the integrated terminal panel.'),
@@ -18,10 +19,7 @@ export const TerminalWriteTool: Tool = {
   inputJSONSchema: zodToJsonSchema(InputSchema),
   async call(args) {
     const text = args.text;
-    if (terminalWriteRef.status !== 'running') {
-      return 'Terminal is not running.';
-    }
-    terminalWriteRef.write(text);
+    await terminalToolWrite(text);
     return `Sent: ${text}`;
   },
   isEnabled: () => true,

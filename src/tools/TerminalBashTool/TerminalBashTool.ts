@@ -1,59 +1,22 @@
 import { z } from 'zod/v4';
 import type { Tool } from '../../Tool.js';
-import { terminalWriteRef } from '../TerminalWriteTool/TerminalWriteTool.js';
+import { terminalToolExec } from '../../terminal/adapters/TerminalToolsAdapter.js';
+export {
+  buildWrappedCommand,
+  parseFramedResult,
+} from '../../terminal/TerminalExecFraming.js';
 
 const InputSchema = z.object({
   command: z.string().describe('Command to execute in the integrated terminal panel.'),
   timeout: z.number().optional().describe('Maximum time to wait for output in milliseconds (default 5000).'),
 });
 
-const POLL_INTERVAL_MS = 200;
-const SETTLE_THRESHOLD_MS = 800;
-
 export const TerminalBashTool: Tool = {
   name: 'TerminalBashTool',
   description: 'Execute a command in the integrated terminal panel and return the captured output.',
   inputJSONSchema: zodToJsonSchema(InputSchema),
   async call(args) {
-    const command = args.command;
-    const timeout = args.timeout ?? 5000;
-
-    if (terminalWriteRef.status !== 'running') {
-      return 'Terminal is not running.';
-    }
-
-    const startBuffer = terminalWriteRef.outputBuffer;
-    const startTime = Date.now();
-
-    terminalWriteRef.write(command + '\n');
-
-    let lastBuffer = startBuffer;
-    let lastChangeTime = startTime;
-    let elapsed = 0;
-
-    while (elapsed < timeout) {
-      await sleep(POLL_INTERVAL_MS);
-      elapsed += POLL_INTERVAL_MS;
-
-      const currentBuffer = terminalWriteRef.outputBuffer;
-      if (currentBuffer !== lastBuffer) {
-        lastBuffer = currentBuffer;
-        lastChangeTime = Date.now();
-      } else if (Date.now() - lastChangeTime >= SETTLE_THRESHOLD_MS) {
-        break;
-      }
-    }
-
-    const finalBuffer = terminalWriteRef.outputBuffer;
-    // Return only the new output since the command was sent
-    if (finalBuffer.length >= startBuffer.length && finalBuffer.startsWith(startBuffer)) {
-      const delta = finalBuffer.slice(startBuffer.length);
-      return delta.trim() || '(no output)';
-    }
-
-    // Fallback if buffer was trimmed/rotated
-    const lines = finalBuffer.split('\n').filter(l => l.length > 0);
-    return lines.slice(-50).join('\n') || '(no output)';
+    return terminalToolExec(args.command, { timeoutMs: args.timeout ?? 5000 });
   },
   isEnabled: () => true,
   prompt: async () => 'Execute a command in the integrated terminal panel and return the captured output.',
@@ -71,10 +34,6 @@ export const TerminalBashTool: Tool = {
   renderToolUseMessage: () => null,
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
   return {
     type: 'object',
@@ -86,3 +45,4 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
     additionalProperties: false,
   };
 }
+

@@ -810,18 +810,6 @@ export async function main() {
   // Auto-detect interactive mode: no flags + has TTY = interactive TUI
   const hasNoFlags = cliArgs.length === 0;
   const isNonInteractive = !forceInteractive && (hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || (!process.stdout.isTTY && !hasNoFlags));
-  // DEBUG: Log interactive mode detection
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] Interactive check:', {
-    forceInteractive,
-    hasPrintFlag,
-    hasInitOnlyFlag,
-    hasSdkUrl,
-    'process.stdout.isTTY': process.stdout.isTTY,
-    'process.env.CLAUDE_CODE_FORCE_INTERACTIVE': process.env.CLAUDE_CODE_FORCE_INTERACTIVE,
-    isNonInteractive,
-    cliArgs
-  });
 
   // Stop capturing early input for non-interactive modes
   if (isNonInteractive) {
@@ -831,13 +819,9 @@ export async function main() {
   // Set simplified tracking fields
   const isInteractive = !isNonInteractive;
   setIsInteractive(isInteractive);
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] After setIsInteractive:', isInteractive);
 
   // Initialize entrypoint based on mode - needs to be set before any event is logged
   initializeEntrypoint(isNonInteractive);
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] After initializeEntrypoint');
 
   // Determine client type
   const clientType = (() => {
@@ -876,11 +860,7 @@ export async function main() {
   // Parse and load settings flags early, before init()
   eagerLoadSettings();
   profileCheckpoint('main_before_run');
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] About to call run()');
   await run();
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] After run()');
   profileCheckpoint('main_after_run');
 }
 async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json'): Promise<string | AsyncIterable<string>> {
@@ -912,8 +892,6 @@ async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json
 }
 async function run(): Promise<CommanderCommand> {
   profileCheckpoint('run_function_start');
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] run() started');
 
   // Create help config that sorts options by long option name.
   // Commander supports compareOptions at runtime but @commander-js/extra-typings
@@ -932,31 +910,19 @@ async function run(): Promise<CommanderCommand> {
   }
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
   profileCheckpoint('run_commander_initialized');
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] Commander initialized');
 
   // Use preAction hook to run initialization only when executing a command,
   // not when displaying help. This avoids the need for env variable signaling.
   program.hook('preAction', async thisCommand => {
     profileCheckpoint('preAction_start');
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction hook started');
     // Await async subprocess loads started at module evaluation (lines 12-20).
     // Nearly free — subprocesses complete during the ~135ms of imports above.
     // Must resolve before init() which triggers the first settings read
     // (applySafeConfigEnvironmentVariables → getSettingsForSource('policySettings')
     // → isRemoteManagedSettingsEligible → sync keychain reads otherwise ~65ms).
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: awaiting MDM and keychain...');
     await Promise.all([ensureMdmSettingsLoaded(), ensureKeychainPrefetchCompleted()]);
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: MDM/keychain done');
     profileCheckpoint('preAction_after_mdm');
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: about to call init()...');
     await init();
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: init() done');
     // Nearly free — subprocesses complete during the ~135ms of imports above.
     // Must resolve before init() which triggers the first settings read
     // (applySafeConfigEnvironmentVariables → getSettingsForSource('policySettings')
@@ -972,8 +938,6 @@ async function run(): Promise<CommanderCommand> {
     if (!isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_TERMINAL_TITLE)) {
       process.title = 'claude';
     }
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: after set title');
 
     // Attach logging sinks so subcommand handlers can use logEvent/logError.
     // Before PR #11106 logEvent dispatched directly; after, events queue until
@@ -985,8 +949,6 @@ async function run(): Promise<CommanderCommand> {
     } = await import('./utils/sinks.js');
     initSinks();
     profileCheckpoint('preAction_after_sinks');
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: after initSinks');
 
     // gh-33508: --plugin-dir is a top-level program option. The default
     // action reads it from its own options destructure, but subcommands
@@ -1003,8 +965,6 @@ async function run(): Promise<CommanderCommand> {
     }
     runMigrations();
     profileCheckpoint('preAction_after_migrations');
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] preAction: after migrations');
 
     // Load remote managed settings for enterprise customers (non-blocking)
     // Fails open - if fetch fails, continues without remote settings
@@ -2281,11 +2241,7 @@ async function run(): Promise<CommanderCommand> {
     let stats!: StatsStore;
 
     // Show setup screens after commands are loaded
-    // biome-ignore lint/suspicious/noConsole: <explanation>
-    console.error('[DEBUG] About to check isNonInteractiveSession for TUI render:', !isNonInteractiveSession);
     if (!isNonInteractiveSession) {
-      // biome-ignore lint/suspicious/noConsole: <explanation>
-      console.error('[DEBUG] Entering TUI render block');
       const ctx = getRenderContext(false);
       getFpsMetrics = ctx.getFpsMetrics;
       stats = ctx.stats;
@@ -2293,37 +2249,24 @@ async function run(): Promise<CommanderCommand> {
       if ("external" === 'ant') {
         installAsciicastRecorder();
       }
-      // biome-ignore lint/suspicious/noConsole: <explanation>
-      console.error('[DEBUG] About to import createRoot');
       const {
         createRoot
       } = await import('./ink.js');
-      // biome-ignore lint/suspicious/noConsole: <explanation>
-      console.error('[DEBUG] About to createRoot');
-      process.stdout.write('[MAIN] About to call createRoot\n');
       root = await createRoot(ctx.renderOptions);
-      process.stdout.write('[MAIN] createRoot returned\n');
-      process.stdout.write('[MAIN] createRoot done\n');
 
       // Log startup time now, before any blocking dialog renders. Logging
       // from REPL's first render (the old location) included however long
       // the user sat on trust/OAuth/onboarding/resume-picker — p99 was ~70s
       // dominated by dialog-wait time, not code-path startup.
-      process.stdout.write('[MAIN] about to call logEvent\n');
       logEvent('tengu_timer', {
         event: 'startup' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         durationMs: Math.round(process.uptime() * 1000)
       });
-      process.stdout.write('[MAIN] about to call logForDebugging\n');
       logForDebugging('[STARTUP] Running showSetupScreens()...');
-      process.stdout.write('[MAIN] about to call showSetupScreens\n');
       const setupScreensStart = Date.now();
       const onboardingShown = await showSetupScreens(root, permissionMode, allowDangerouslySkipPermissions, commands, enableClaudeInChrome, devChannels);
-      process.stdout.write('[MAIN] showSetupScreens returned\n');
       logForDebugging(`[STARTUP] showSetupScreens() completed in ${Date.now() - setupScreensStart}ms`);
 
-      process.stdout.write('[MAIN] about to check remoteControlOption\n');
-      process.stdout.write('[MAIN] about to check remoteControlOption (done - false)\n');
       // Now that trust is established and GrowthBook has auth headers,
       // resolve the --remote-control / --rc entitlement gate.
       if (false && remoteControlOption !== undefined) {
@@ -2379,18 +2322,15 @@ async function run(): Promise<CommanderCommand> {
         });
       }
 
-      process.stdout.write('[MAIN] about to validateForceLoginOrg\n');
       // Validate that the active token's org matches forceLoginOrgUUID (if set
       // in managed settings). Runs after onboarding so managed settings and
       // login state are fully loaded.
       const orgValidation = await validateForceLoginOrg();
-      process.stdout.write('[MAIN] validateForceLoginOrg returned\n');
       if (!orgValidation.valid) {
         await exitWithError(root, orgValidation.message);
       }
     }
 
-    process.stdout.write('[MAIN] about to check process.exitCode\n');
     // If gracefulShutdown was initiated (e.g., user rejected trust dialog),
     // process.exitCode will be set. Skip all subsequent operations that could
     // trigger code execution before the process exits (e.g. we don't want apiKeyHelper
@@ -2399,16 +2339,12 @@ async function run(): Promise<CommanderCommand> {
       logForDebugging('Graceful shutdown initiated, skipping further initialization');
       return;
     }
-    process.stdout.write('[MAIN] process.exitCode check passed\n');
 
     // Initialize LSP manager AFTER trust is established (or in non-interactive mode
     // where trust is implicit). This prevents plugin LSP servers from executing
     // code in untrusted directories before user consent.
     // Must be after inline plugins are set (if any) so --plugin-dir LSP servers are included.
     initializeLspServerManager();
-    process.stdout.write('[MAIN] initializeLspServerManager done\n');
-
-    process.stdout.write('[MAIN] about to check settings validation\n');
     // Show settings validation errors after trust is established
     // MCP config errors don't block settings from loading, so exclude them
     if (!isNonInteractiveSession) {
@@ -2423,7 +2359,6 @@ async function run(): Promise<CommanderCommand> {
         });
       }
     }
-    process.stdout.write('[MAIN] settings validation done\n');
 
     // Check quota status, fast mode, passes eligibility, and bootstrap data
     // after trust is established. These make API calls which could trigger
@@ -2467,12 +2402,10 @@ async function run(): Promise<CommanderCommand> {
       void refreshExampleCommands(); // Pre-fetch example commands (runs git log, no API call)
     }
 
-    process.stdout.write('[MAIN] about to await mcpConfigPromise\n');
     // Resolve MCP configs (started early, overlaps with setup/trust dialog work)
     const {
       servers: existingMcpConfigs
     } = await mcpConfigPromise;
-    process.stdout.write('[MAIN] mcpConfigPromise resolved\n');
     logForDebugging(`[STARTUP] MCP configs resolved in ${mcpConfigResolvedMs}ms (awaited at +${Date.now() - mcpConfigStart}ms)`);
     // CLI flag (--mcp-config) should override file-based configs, matching settings precedence
     const allMcpConfigs = {
@@ -2492,7 +2425,6 @@ async function run(): Promise<CommanderCommand> {
       }
     }
     profileCheckpoint('action_mcp_configs_loaded');
-    process.stdout.write('[MAIN] MCP configs loaded\n');
 
     // Prefetch MCP resources after trust dialog (this is where execution happens).
     // Interactive mode only: print mode defers connects until headlessStore exists
@@ -2523,7 +2455,6 @@ async function run(): Promise<CommanderCommand> {
     }));
 
 
-    process.stdout.write('[MAIN] about to start hooks\n');
     // Start hooks early so they run in parallel with MCP connections.
     // Skip for initOnly/init/maintenance (handled separately), non-interactive
     // (handled via setupTrigger), and resume/continue (conversationRecovery.ts
@@ -2533,8 +2464,6 @@ async function run(): Promise<CommanderCommand> {
       agentType: mainThreadAgentDefinition?.agentType,
       model: resolvedInitialModel
     });
-    process.stdout.write('[MAIN] hooksPromise created\n');
-    process.stdout.write('[MAIN] about to set up MCP promises\n');
 
     // MCP never blocks REPL render OR turn 1 TTFT. useManageMCPConnections
     // populates appState.mcp async as servers connect (connectToServer is
@@ -2583,7 +2512,6 @@ async function run(): Promise<CommanderCommand> {
         }
       }
     }
-    process.stdout.write('[MAIN] thinking config done\n');
     logForDiagnosticsNoPII('info', 'started', {
       version: MACRO.VERSION,
       is_native_binary: isInBundledMode()
@@ -2617,12 +2545,10 @@ async function run(): Promise<CommanderCommand> {
       assistantActivationPath: false && kairosEnabled ? assistantModule?.getAssistantActivationPath() : undefined
     });
 
-    process.stdout.write('[MAIN] about to log context metrics\n');
     // Log context metrics once at initialization
     void logContextMetrics(regularMcpConfigs, toolPermissionContext);
     void logPermissionContextForAnts(null, 'initialization');
     logManagedSettings();
-    process.stdout.write('[MAIN] logging done\n');
 
     // Register PID file for concurrent-session detection (~/.claude/sessions/)
     // and fire multi-clauding telemetry. Lives here (not init.ts) so only the
@@ -2669,7 +2595,6 @@ async function run(): Promise<CommanderCommand> {
         void getGlobExclusionsForPluginCache();
       });
     }
-    process.stdout.write('[MAIN] plugins initialized\n');
     const setupTrigger = initOnly || init ? 'init' : maintenance ? 'maintenance' : null;
     if (initOnly) {
       applyConfigEnvironmentVariables();
@@ -2682,10 +2607,8 @@ async function run(): Promise<CommanderCommand> {
       gracefulShutdownSync(0);
       return;
     }
-    process.stdout.write('[MAIN] initOnly check passed\n');
 
     // --print mode
-    process.stdout.write('[MAIN] about to check isNonInteractiveSession\n');
     if (isNonInteractiveSession) {
       if (outputFormat === 'stream-json' || outputFormat === 'json') {
         setHasFormattedOutput(true);
@@ -3872,7 +3795,6 @@ async function run(): Promise<CommanderCommand> {
         });
       }
     } else {
-      process.stdout.write('[MAIN] entering interactive mode (launchRepl)\n');
       // Pass unresolved hooks promise to REPL so it can render immediately
       // instead of blocking ~500ms waiting for SessionStart hooks to finish.
       // REPL will inject hook messages when they resolve and await them before
@@ -3910,7 +3832,6 @@ async function run(): Promise<CommanderCommand> {
         }
       }
       const initialMessages = deepLinkBanner ? [deepLinkBanner, ...hookMessages] : hookMessages.length > 0 ? hookMessages : undefined;
-      process.stdout.write('[MAIN] about to call launchRepl\n');
       await launchRepl(root, {
         getFpsMetrics,
         stats,
@@ -4617,11 +4538,7 @@ Examples:
     });
   }
   profileCheckpoint('run_before_parse');
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] About to parseAsync');
   await program.parseAsync(process.argv);
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.error('[DEBUG] After parseAsync');
   profileCheckpoint('run_after_parse');
 
   // Record final checkpoint for total_time calculation

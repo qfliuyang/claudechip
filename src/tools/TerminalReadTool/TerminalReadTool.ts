@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 import type { Tool } from '../../Tool.js';
-import { useAppStateStore } from '../../state/AppState.js';
+import { terminalToolReadTail } from '../../terminal/adapters/TerminalToolsAdapter.js';
 
 const InputSchema = z.object({
   limit: z.number().optional().describe('Number of recent lines to return (default 50)'),
@@ -11,11 +11,8 @@ export const TerminalReadTool: Tool = {
   description: 'Read recent output from the integrated terminal panel.',
   inputJSONSchema: zodToJsonSchema(InputSchema),
   async call(args) {
-    const store = useAppStateStore.getState();
     const limit = args.limit ?? 50;
-    const buffer = store.terminalSession.outputBuffer;
-    const lines = buffer.split('\n').filter(l => l.length > 0);
-    return lines.slice(-limit).join('\n') || '(no terminal output yet)';
+    return (await terminalToolReadTail({ lines: limit })) || '(no terminal output yet)';
   },
   isEnabled: () => true,
   prompt: async () => 'Read recent output from the integrated terminal panel.',

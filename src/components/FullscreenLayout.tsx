@@ -64,6 +64,10 @@ type Props = {
   newMessageCount?: number;
   /** Called when the user clicks the "N new" pill. */
   onPillClick?: () => void;
+  /** Simplified fullscreen render path for two-pane mode: keeps local sizing
+   *  and scroll/bottom separation, but disables sticky prompt + new-message
+   *  pill + bottomFloat chrome that is fragile under side-by-side composition. */
+  simpleMode?: boolean;
 };
 
 /**
@@ -281,11 +285,13 @@ export function FullscreenLayout(t0) {
     hidePill: t1,
     hideSticky: t2,
     newMessageCount: t3,
-    onPillClick
+    onPillClick,
+    simpleMode: tSimple
   } = t0;
   const hidePill = t1 === undefined ? false : t1;
   const hideSticky = t2 === undefined ? false : t2;
   const newMessageCount = t3 === undefined ? 0 : t3;
+  const simpleMode = tSimple === undefined ? false : tSimple;
   const {
     rows: terminalRows,
     columns
@@ -336,6 +342,73 @@ export function FullscreenLayout(t0) {
   }
   useLayoutEffect(_temp3, t7);
   if (isFullscreenEnvEnabled()) {
+    if (simpleMode) {
+      let s0;
+      if ($[7] !== overlay || $[8] !== scrollRef || $[9] !== scrollable) {
+        s0 = <ScrollBox ref={scrollRef} flexGrow={1} flexDirection="column" paddingTop={0} stickyScroll={true}>{scrollable}{overlay}</ScrollBox>;
+        $[7] = overlay;
+        $[8] = scrollRef;
+        $[9] = scrollable;
+        $[10] = s0;
+      } else {
+        s0 = $[10];
+      }
+      let s1;
+      if ($[11] !== s0) {
+        s1 = <Box flexGrow={1} flexDirection="column" overflow="hidden">{s0}</Box>;
+        $[11] = s0;
+        $[12] = s1;
+      } else {
+        s1 = $[12];
+      }
+      let s2;
+      let s3;
+      if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
+        s2 = <SuggestionsOverlay />;
+        s3 = <DialogOverlay />;
+        $[13] = s2;
+        $[14] = s3;
+      } else {
+        s2 = $[13];
+        s3 = $[14];
+      }
+      let s4;
+      if ($[15] !== bottom || $[16] !== s2 || $[17] !== s3) {
+        s4 = <Box flexDirection="column" flexShrink={0} width="100%" overflow="hidden"><Box flexShrink={0} borderTop borderColor="comment" /><Box flexDirection="column" width="100%" flexShrink={0} overflowY="hidden">{s2}{s3}{bottom}</Box></Box>;
+        $[15] = bottom;
+        $[16] = s2;
+        $[17] = s3;
+        $[18] = s4;
+      } else {
+        s4 = $[18];
+      }
+      let s5;
+      if ($[19] !== columns || $[20] !== modal || $[21] !== modalScrollRef || $[22] !== terminalRows) {
+        s5 = modal != null && <ModalContext value={{
+          rows: terminalRows - MODAL_TRANSCRIPT_PEEK - 1,
+          columns: columns - 4,
+          scrollRef: modalScrollRef ?? null
+        }}><Box position="absolute" bottom={0} left={0} right={0} maxHeight={terminalRows - MODAL_TRANSCRIPT_PEEK} flexDirection="column" overflow="hidden" opaque={true}><Box flexShrink={0}><Text color="permission">{"▔".repeat(columns)}</Text></Box><Box flexDirection="column" paddingX={2} flexShrink={0} overflow="hidden">{modal}</Box></Box></ModalContext>;
+        $[19] = columns;
+        $[20] = modal;
+        $[21] = modalScrollRef;
+        $[22] = terminalRows;
+        $[23] = s5;
+      } else {
+        s5 = $[23];
+      }
+      let s6;
+      if ($[24] !== s1 || $[25] !== s4 || $[26] !== s5) {
+        s6 = <PromptOverlayProvider>{s1}{s4}{s5}</PromptOverlayProvider>;
+        $[24] = s1;
+        $[25] = s4;
+        $[26] = s5;
+        $[27] = s6;
+      } else {
+        s6 = $[27];
+      }
+      return <Box flexDirection="column" width="100%" height="100%" overflow="hidden">{s6}</Box>;
+    }
     const sticky = hideSticky ? null : stickyPrompt;
     const headerPrompt = sticky != null && sticky !== "clicked" && overlay == null ? sticky : null;
     const padCollapsed = sticky != null && overlay == null;
@@ -442,7 +515,7 @@ export function FullscreenLayout(t0) {
     } else {
       t19 = $[41];
     }
-    return t19;
+    return <Box flexDirection="column" width="100%" height="100%" overflow="hidden">{t19}</Box>;
   }
   let t8;
   if ($[42] !== bottom || $[43] !== modal || $[44] !== overlay || $[45] !== scrollable) {

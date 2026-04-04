@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import type { InputEvent, Key } from '../events/input-event.js'
 import useStdin from './use-stdin.js'
+import { isTerminalPanelFocused } from '../../utils/terminalPanelFocus.js'
 
 type Handler = (input: string, key: Key, event: InputEvent) => void
 
@@ -13,6 +14,13 @@ type Options = {
    * @default true
    */
   isActive?: boolean
+  /**
+   * When true, the handler remains active while the integrated terminal pane
+   * has input focus. This should be enabled only for terminal-pane handlers.
+   *
+   * @default false
+   */
+  allowWhenTerminalPanelFocused?: boolean
 }
 
 /**
@@ -70,12 +78,22 @@ const useInput = (inputHandler: Handler, options: Options = {}) => {
     if (options.isActive === false) {
       return
     }
+    if (
+      isTerminalPanelFocused() &&
+      options.allowWhenTerminalPanelFocused !== true
+    ) {
+      return
+    }
     const { input, key } = event
 
     // If app is not supposed to exit on Ctrl+C, then let input listener handle it
     // Note: discreteUpdates is called at the App level when emitting events,
     // so all listeners are already within a high-priority update context.
-    if (!(input === 'c' && key.ctrl) || !internal_exitOnCtrlC) {
+    if (
+      !(input === 'c' && key.ctrl) ||
+      !internal_exitOnCtrlC ||
+      isTerminalPanelFocused()
+    ) {
       inputHandler(input, key, event)
     }
   })
