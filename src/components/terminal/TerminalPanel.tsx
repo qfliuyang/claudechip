@@ -194,8 +194,7 @@ export function TerminalPanel({
       </ScrollBox>
       <Box height={1} paddingX={1} borderTop borderColor="comment" data-testid="terminal-status">
         <Text dimColor>
-          {panelFocused ? 'tab to switch' : 'tab to focus'} | pid {session.ptyPid ?? '-'} |{' '}
-          {session.status}
+          {panelFocused ? 'tty:active' : 'tty:idle'} | pid:{session.ptyPid ?? '-'} | {session.status}
         </Text>
       </Box>
     </Box>

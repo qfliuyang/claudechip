@@ -13,6 +13,8 @@ import {
 } from '../layout/TwoPaneFocusArbiter.js';
 import { PaneWidthContext, type TwoPaneLayoutProps } from './TwoPaneLayout.js';
 import { isTerminalPanelFocused, setTerminalPanelFocused } from '../utils/terminalPanelFocus.js';
+import { truncateToWidth } from '../utils/truncate.js';
+import { stringWidth } from '../ink/stringWidth.js';
 
 export interface TwoPaneRuntimeV2Props extends TwoPaneLayoutProps {
   /**
@@ -26,7 +28,33 @@ export interface TwoPaneRuntimeV2Props extends TwoPaneLayoutProps {
 const MIN_TWO_PANE_COLUMNS = 100;
 const MIN_PANE_COLS = 32;
 const BORDER_COLS = 1;
-const PANE_HEADER_ROWS = 1;
+const PANE_HEADER_ROWS = 3;
+
+function buildTopBorderLine(width: number, title: string): string {
+  if (width <= 2) return ' '.repeat(Math.max(0, width));
+  const innerWidth = width - 2;
+  const titleToken = ` ${title} `;
+  const clampedTitle = truncateToWidth(titleToken, innerWidth);
+  const trailing = Math.max(0, innerWidth - stringWidth(clampedTitle));
+  return `╭${clampedTitle}${'─'.repeat(trailing)}╮`;
+}
+
+function buildMiddleLine(width: number, left: string, right: string): string {
+  if (width <= 2) return ' '.repeat(Math.max(0, width));
+  const innerWidth = width - 2;
+  const rightClamped = truncateToWidth(right, Math.max(0, Math.min(20, innerWidth)));
+  const rightWidth = stringWidth(rightClamped);
+  const leftBudget = Math.max(0, innerWidth - rightWidth - 1);
+  const leftClamped = truncateToWidth(left, leftBudget);
+  const leftWidth = stringWidth(leftClamped);
+  const spacer = Math.max(1, innerWidth - leftWidth - rightWidth);
+  return `│${leftClamped}${' '.repeat(spacer)}${rightClamped}│`;
+}
+
+function buildBottomBorderLine(width: number): string {
+  if (width <= 2) return ' '.repeat(Math.max(0, width));
+  return `╰${'─'.repeat(width - 2)}╯`;
+}
 
 export function TwoPaneRuntimeV2({
   leftPane,
@@ -83,6 +111,21 @@ export function TwoPaneRuntimeV2({
   const innerRows = Math.max(1, geometry.rows - PANE_HEADER_ROWS);
   const leftActive = focusState.owner === 'left';
   const rightActive = focusState.owner === 'right';
+  const dividerColor = rightActive ? 'success' : 'comment';
+  const leftTop = buildTopBorderLine(geometry.leftCols, '[o-o-o] CLAUDECHIP CONTROL');
+  const leftStatus = buildMiddleLine(
+    geometry.leftCols,
+    leftActive ? '[L:ACTIVE] wafer-map online' : '[L:IDLE] wafer-map standby',
+    '[TAB→TERM]',
+  );
+  const leftBottom = buildBottomBorderLine(geometry.leftCols);
+  const rightTop = buildTopBorderLine(geometry.rightCols, 'TERMINAL FABRIC');
+  const rightStatus = buildMiddleLine(
+    geometry.rightCols,
+    rightActive ? '[R:ACTIVE] shared tty attached' : '[R:IDLE] shared tty ready',
+    rightActive ? '[TAB→CHAT]' : '[TAB FOCUS]',
+  );
+  const rightBottom = buildBottomBorderLine(geometry.rightCols);
 
   return (
     <Box
@@ -102,15 +145,14 @@ export function TwoPaneRuntimeV2({
         >
           <Box
             width="100%"
-            height={1}
-            borderBottom
-            borderColor={leftActive ? 'success' : 'comment'}
-            paddingX={2}
+            height={3}
+            paddingX={0}
+            flexDirection="column"
             data-testid="left-pane-header-v2"
           >
-            <Text bold={leftActive} color={leftActive ? 'success' : 'comment'}>
-              {leftActive ? '[ Claude:active ]' : '[ Claude ]'}
-            </Text>
+            <Text color={leftActive ? 'success' : 'comment'}>{leftTop}</Text>
+            <Text color={leftActive ? 'success' : 'comment'}>{leftStatus}</Text>
+            <Text color={leftActive ? 'success' : 'comment'}>{leftBottom}</Text>
           </Box>
           <TerminalSizeContext.Provider value={{ columns: geometry.leftCols, rows: innerRows }}>
             <Box width="100%" height="100%" overflow="hidden" flexShrink={0}>
@@ -119,7 +161,7 @@ export function TwoPaneRuntimeV2({
           </TerminalSizeContext.Provider>
         </Box>
         <Box width={geometry.dividerCols} height="100%" justifyContent="center" flexShrink={0} data-testid="pane-divider-v2">
-          <Box width={1} height="100%" borderLeft borderColor="comment" />
+          <Box width={1} height="100%" borderLeft borderColor={dividerColor} />
         </Box>
         <Box
           width={geometry.rightCols}
@@ -130,15 +172,14 @@ export function TwoPaneRuntimeV2({
         >
           <Box
             width="100%"
-            height={1}
-            borderBottom
-            borderColor={rightActive ? 'success' : 'comment'}
-            paddingX={2}
+            height={3}
+            paddingX={0}
+            flexDirection="column"
             data-testid="right-pane-header-v2"
           >
-            <Text bold={rightActive} color={rightActive ? 'success' : 'comment'}>
-              {rightActive ? '[ Terminal:active ]' : '[ Terminal ]'}
-            </Text>
+            <Text color={rightActive ? 'success' : 'comment'}>{rightTop}</Text>
+            <Text color={rightActive ? 'success' : 'comment'}>{rightStatus}</Text>
+            <Text color={rightActive ? 'success' : 'comment'}>{rightBottom}</Text>
           </Box>
           <TerminalSizeContext.Provider value={{ columns: geometry.rightCols, rows: innerRows }}>
             <Box width="100%" height="100%" overflow="hidden" flexShrink={0}>
