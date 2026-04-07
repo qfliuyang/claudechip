@@ -10,6 +10,7 @@ import { getClipboardPath } from '../ink/termio/osc.js';
 import { type Key, useInput } from '../ink.js';
 import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { logForDebugging } from '../utils/debug.js';
+import { isTerminalPanelFocused } from '../utils/terminalPanelFocus.js';
 type Props = {
   scrollRef: RefObject<ScrollBoxHandle | null>;
   isActive: boolean;
@@ -655,6 +656,10 @@ function useDragToScroll(scrollRef: RefObject<ScrollBoxHandle | null>, selection
       }
     }
     function tick(): void {
+      if (isTerminalPanelFocused()) {
+        stop();
+        return;
+      }
       const sel = selection.getState();
       const s = scrollRef.current;
       const dir = dirRef.current;
@@ -739,6 +744,10 @@ function useDragToScroll(scrollRef: RefObject<ScrollBoxHandle | null>, selection
     // scrolling, highlight walks up with the text). Keeping sticky also
     // avoids useVirtualScroll's tail-walk → forward-walk phantom growth.
     function check(): void {
+      if (isTerminalPanelFocused()) {
+        stop();
+        return;
+      }
       const s_0 = scrollRef.current;
       if (!s_0) {
         stop();

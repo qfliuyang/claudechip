@@ -14,6 +14,16 @@ export type BorderTextOptions = {
 }
 
 export const CUSTOM_BORDER_STYLES = {
+  ascii: {
+    top: '-',
+    left: '|',
+    right: '|',
+    bottom: '-',
+    topLeft: '+',
+    topRight: '+',
+    bottomLeft: '+',
+    bottomRight: '+',
+  },
   dashed: {
     top: '╌',
     left: '╎',

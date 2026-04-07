@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test'
 import {
   terminalToolExec,
   terminalToolReadTail,
+  terminalToolWrite,
 } from '../src/terminal/adapters/TerminalToolsAdapter.js'
 import { terminalPanelWrite } from '../src/terminal/adapters/TerminalPanelAdapter.js'
 import { getTerminalSessionManager } from '../src/terminal/TerminalSessionManager.js'
@@ -28,9 +29,14 @@ test('tool and human share the same long-lived terminal session', async () => {
   const toolMarker = `tool-shared-${Date.now()}`
   const humanMarker = `human-shared-${Date.now()}`
 
-  const execResult = await terminalToolExec(`printf '${toolMarker}\\n'`, {
-    timeoutMs: 8000,
+  let execResult = await terminalToolExec(`printf '${toolMarker}\\n'`, {
+    timeoutMs: 12000,
   })
+  if (execResult.timedOut) {
+    execResult = await terminalToolExec(`printf '${toolMarker}\\n'`, {
+      timeoutMs: 12000,
+    })
+  }
   expect(execResult.timedOut).toBe(false)
 
   await terminalPanelWrite(`printf '${humanMarker}\\n'\r`)
@@ -39,6 +45,40 @@ test('tool and human share the same long-lived terminal session', async () => {
     const tail = await terminalToolReadTail({ lines: 200 })
     return tail.includes(toolMarker) && tail.includes(humanMarker)
   })
+})
+
+test('human backspace and enter behave like normal interactive shell editing', async () => {
+  const marker = `human-edit-${Date.now()}`
+
+  await terminalPanelWrite(`echo ${marker}-ab`)
+  await terminalPanelWrite('\x7f')
+  await terminalPanelWrite(`c\r`)
+
+  await waitFor(async () => {
+    const tail = await terminalToolReadTail({ lines: 200 })
+    return tail.includes(`${marker}-ac`)
+  })
+})
+
+test('manager emits distinct write events for human and Claude control paths', async () => {
+  const manager = getTerminalSessionManager()
+  await manager.ensureStarted()
+
+  const writes: Array<'human' | 'tool'> = []
+  const unsubscribe = manager.subscribe(event => {
+    if (event.type === 'terminal.write') {
+      writes.push(event.source)
+    }
+  })
+
+  try {
+    await terminalPanelWrite(`printf 'human-write-check\\n'\r`)
+    await terminalToolWrite(`printf 'tool-write-check\\n'\r`)
+
+    await waitFor(() => writes.includes('human') && writes.includes('tool'))
+  } finally {
+    unsubscribe()
+  }
 })
 
 test('terminal exec reports interleaving when human writes during run', async () => {

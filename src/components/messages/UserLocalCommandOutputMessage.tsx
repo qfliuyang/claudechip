@@ -50,7 +50,7 @@ export function UserLocalCommandOutputMessage(t0) {
   if (t1 !== Symbol.for("react.early_return_sentinel")) {
     return t1;
   }
-  return lines;
+  return <Box flexDirection="column">{lines}</Box>;
 }
 function IndentedContent(t0) {
   const $ = _c(5);

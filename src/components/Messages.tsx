@@ -461,8 +461,11 @@ const MessagesImpl = ({
     return normalizeMessages([msg_1]);
   }), [streamingToolUsesWithoutInProgress]);
   const isTranscriptMode = screen === 'transcript';
-  // Hoisted to mount-time — this component re-renders on every scroll.
-  const disableVirtualScroll = useMemo(() => isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL), []);
+  // In two-pane mode, disable virtualization to avoid row overlap/ghosting
+  // caused by viewport math that assumes a full-width fullscreen transcript.
+  // Keep the env var override behavior in single-pane mode.
+  const disableVirtualScroll =
+    paneWidth != null || isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL);
   // Virtual scroll replaces the transcript cap: everything is scrollable and
   // memory is bounded by the mounted-item count, not the total. scrollRef is
   // only passed when isFullscreenEnvEnabled() is true (REPL.tsx gates it),

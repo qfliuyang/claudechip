@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useContext } from 'react';
 import { Box, NoSelect, Text } from '../ink.js';
 import { Ratchet } from './design-system/Ratchet.js';
+import { usePaneWidth } from './TwoPaneLayout.js';
 type Props = {
   children: React.ReactNode;
   height?: number;
@@ -14,6 +15,7 @@ export function MessageResponse(t0) {
     height
   } = t0;
   const isMessageResponse = useContext(MessageResponseContext);
+  const inTwoPane = usePaneWidth() != null;
   if (isMessageResponse) {
     return children;
   }
@@ -42,7 +44,7 @@ export function MessageResponse(t0) {
     t3 = $[5];
   }
   const content = t3;
-  if (height !== undefined) {
+  if (height !== undefined || inTwoPane) {
     return content;
   }
   let t4;

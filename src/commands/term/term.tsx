@@ -7,6 +7,7 @@ import {
   terminalToolStatus,
   terminalToolWrite,
 } from '../../terminal/adapters/TerminalToolsAdapter.js';
+import { requestTerminalPanelFocus } from '../../utils/terminalPanelFocus.js';
 
 const HELP_TEXT = [
   'Usage:',
@@ -73,7 +74,8 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
         ...prev,
         terminalPanelVisible: true,
       }));
-      onDone('Terminal pane is visible. Press Ctrl+B to move focus to terminal.', {
+      requestTerminalPanelFocus();
+      onDone('Terminal pane focused. Type commands directly in the terminal.', {
         display: 'system',
       });
       return null;
@@ -114,4 +116,3 @@ function extractNumericFlag(tokens: string[], name: '--lines' | '--bytes'): numb
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
-

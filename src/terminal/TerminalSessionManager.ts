@@ -81,6 +81,7 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
   private pingTimer: NodeJS.Timeout | null = null;
   private pendingPingId: string | null = null;
   private pendingPingAt = 0;
+  private outputDecoder = new TextDecoder();
 
   async ensureStarted(): Promise<void> {
     if (this.health === 'running' && this.worker?.isRunning()) return;
@@ -363,13 +364,15 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
 
   private handleWorkerEvent(event: WorkerEvent): void {
     if (event.type === 'spawned') {
+      this.outputDecoder = new TextDecoder();
       this.pid = event.pid;
       this.emit({ type: 'terminal.spawned', pid: event.pid, ts: Date.now() });
       return;
     }
 
     if (event.type === 'output') {
-      const data = Buffer.from(event.dataBase64, 'base64').toString('utf-8');
+      const raw = Buffer.from(event.dataBase64, 'base64');
+      const data = this.outputDecoder.decode(raw, { stream: true });
       const before = this.store.stats().droppedBytes;
       this.store.appendOutput(data);
       const after = this.store.stats().droppedBytes;
@@ -377,13 +380,15 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
       this.emit({
         type: 'terminal.output',
         data,
-        bytes: data.length,
+        raw,
+        bytes: raw.length,
         ts: event.ts ?? Date.now(),
       });
       return;
     }
 
     if (event.type === 'exit') {
+      this.outputDecoder = new TextDecoder();
       this.pid = null;
       this.emit({
         type: 'terminal.exited',

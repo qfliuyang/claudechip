@@ -374,7 +374,7 @@ export function FullscreenLayout(t0) {
       }
       let s4;
       if ($[15] !== bottom || $[16] !== s2 || $[17] !== s3) {
-        s4 = <Box flexDirection="column" flexShrink={0} width="100%" overflow="hidden"><Box flexShrink={0} borderTop borderColor="comment" /><Box flexDirection="column" width="100%" flexShrink={0} overflowY="hidden">{s2}{s3}{bottom}</Box></Box>;
+        s4 = <Box flexDirection="column" flexShrink={0} width="100%" overflow="hidden"><Box flexDirection="column" width="100%" flexShrink={0} overflowY="hidden">{s2}{s3}{bottom}</Box></Box>;
         $[15] = bottom;
         $[16] = s2;
         $[17] = s3;

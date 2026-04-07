@@ -6,13 +6,25 @@ import {
 } from '../TerminalProtocol.js';
 import { WorkerProtocolHandler } from './WorkerProtocolHandler.js';
 
-function writeEvent(event: WorkerEvent): void {
-  process.stdout.write(encodeNdjsonMessage(event));
-}
-
 function runWorker(): void {
   const parser = new NdjsonStreamParser<WorkerCommand>();
-  const handler = new WorkerProtocolHandler(writeEvent);
+  let stdoutBackpressured = false;
+
+  let handler: WorkerProtocolHandler;
+  const emitEvent = (event: WorkerEvent): void => {
+    const writable = process.stdout.write(encodeNdjsonMessage(event));
+    if (!writable && !stdoutBackpressured) {
+      stdoutBackpressured = true;
+      handler.pauseOutput();
+    }
+  };
+  handler = new WorkerProtocolHandler(emitEvent);
+
+  process.stdout.on('drain', () => {
+    if (!stdoutBackpressured) return;
+    stdoutBackpressured = false;
+    handler.resumeOutput();
+  });
 
   process.stdin.on('data', (chunk: Buffer) => {
     const parsed = parser.push(chunk);
@@ -20,7 +32,7 @@ function runWorker(): void {
       try {
         handler.handle(cmd);
       } catch (error) {
-        writeEvent({
+        emitEvent({
           type: 'error',
           code: 'worker_handle_error',
           message: error instanceof Error ? error.message : String(error),
@@ -28,7 +40,7 @@ function runWorker(): void {
       }
     }
     for (const bad of parsed.errors) {
-      writeEvent({
+      emitEvent({
         type: 'error',
         code: 'worker_parse_error',
         message: bad,
@@ -45,4 +57,3 @@ function runWorker(): void {
 if (import.meta.url === `file://${process.argv[1]}`) {
   runWorker();
 }
-

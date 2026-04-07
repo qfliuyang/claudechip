@@ -1,8 +1,7 @@
-import { Box, Text, useInput } from '../../ink.js';
+import { Box, RawAnsi, Text, useInput } from '../../ink.js';
 import { useAppState, useSetAppState } from '../../state/AppState.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { terminalWriteRef } from '../../tools/TerminalWriteTool/TerminalWriteTool.js';
-import { Ansi } from '../../ink.js';
 import ScrollBox, { type ScrollBoxHandle } from '../../ink/components/ScrollBox.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { usePaneWidth } from '../TwoPaneLayout.js';
@@ -11,38 +10,78 @@ import {
   getTerminalPanelManager,
   terminalPanelWrite,
 } from '../../terminal/adapters/TerminalPanelAdapter.js';
+import {
+  TerminalSurface,
+} from '../../terminal/TerminalSurface.js';
+import type { Key } from '../../ink/events/input-event.js';
 
 const OUTPUT_BUFFER_CEILING = 64 * 1024;
 
 /**
- * Strip VT100 Claude Code-movement and other non-SGR escape sequences from PTY
- * output so the raw text can be rendered by <Ansi> which only understands
- * SGR color/style codes.
+ * Strip OSC sequences from PTY output before handing the rest to the headless
+ * emulator. OSC title updates are not display content and would otherwise end
+ * up in the cell buffer.
  *
- * We keep SGR codes (\x1b[...m) and OSC title sequences because <Ansi>
- * handles those. We strip:
- *   - Cursor movement / erase: \x1b[...A/B/C/D/E/F/G/H/J/K/S/T
- *   - Absolute position:        \x1b[row;colH  \x1b[row;colf
- *   - Set mode / private:       \x1b[...h  \x1b[...l  \x1b[?...h/l
- *   - Clear screen shorthand:   \x1b[2J  \x1b[3J  \x1bc
  *   - OSC title (drop them):    \x1b]...\x07 or \x1b]...\x1b\\
- *   - Single-char escapes:      \x1bM (reverse line feed)
- *   - Carriage return (\r) alone (overwrite mode — keep the newline if present)
  */
-function stripCursorSequences(data: string): string {
-  return (
-    data
-      // OSC sequences (title sets, etc.) — strip entirely
-      .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '')
-      // CSI sequences that are NOT SGR (not ending in 'm')
-      // SGR ends in 'm'; we keep those. Strip everything else.
-      .replace(/\x1b\[[\x30-\x3f]*[\x20-\x2f]*[A-LN-Za-z]/g, '')
-      // Single-char escape sequences (e.g. \x1bM = reverse linefeed)
-      .replace(/\x1b[^[\]]/g, '')
-      // \r not followed by \n — carriage return without newline overwrites the
-      // current line; just drop it to avoid garbled output
-      .replace(/\r(?!\n)/g, '')
-  );
+function stripOscSequences(data: string): string {
+  return data.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '');
+}
+
+export type TerminalPanelAction =
+  | { type: 'blur' }
+  | { type: 'scroll'; delta: number }
+  | { type: 'signal'; kind: 'sigint' | 'sigstop' }
+  | { type: 'write'; data: string }
+  | { type: 'noop' };
+
+export function getTerminalPanelAction(input: string, key: Key): TerminalPanelAction {
+  if (key.ctrl && input === 'b') {
+    return { type: 'blur' };
+  }
+  if (key.wheelUp) {
+    return { type: 'scroll', delta: -3 };
+  }
+  if (key.wheelDown) {
+    return { type: 'scroll', delta: 3 };
+  }
+  if (key.ctrl && input === 'c') {
+    return { type: 'signal', kind: 'sigint' };
+  }
+  if (key.ctrl && input === 'd') {
+    return { type: 'write', data: '\x04' };
+  }
+  if (key.ctrl && input === 'z') {
+    return { type: 'signal', kind: 'sigstop' };
+  }
+  if (key.return) {
+    return { type: 'write', data: '\r' };
+  }
+  if (key.tab) {
+    return { type: 'write', data: '\t' };
+  }
+  if (key.backspace || key.delete) {
+    return { type: 'write', data: '\x7f' };
+  }
+  if (key.escape) {
+    return { type: 'write', data: '\x1b' };
+  }
+  if (key.upArrow) {
+    return { type: 'write', data: '\x1b[A' };
+  }
+  if (key.downArrow) {
+    return { type: 'write', data: '\x1b[B' };
+  }
+  if (key.leftArrow) {
+    return { type: 'write', data: '\x1b[D' };
+  }
+  if (key.rightArrow) {
+    return { type: 'write', data: '\x1b[C' };
+  }
+  if (input) {
+    return { type: 'write', data: input };
+  }
+  return { type: 'noop' };
 }
 
 export interface TerminalPanelProps {
@@ -60,14 +99,16 @@ export function TerminalPanel({
 }: TerminalPanelProps) {
   const session = useAppState(s => s.terminalSession);
   const setAppState = useSetAppState();
-  const [lines, setLines] = useState<string[]>([]);
+  const [ansiLines, setAnsiLines] = useState<string[]>(['Waiting for shell...']);
   const scrollRef = useRef<ScrollBoxHandle>(null);
   const managerRef = useRef(getTerminalPanelManager());
+  const surfaceRef = useRef(new TerminalSurface(120, 40));
   const { columns, rows } = useTerminalSize();
   const paneWidth = usePaneWidth();
   const [isFocused, setIsFocused] = useState(false);
   const isControlledFocus = focused !== undefined;
   const panelFocused = isControlledFocus ? focused : isFocused;
+  const panelFocusedRef = useRef(panelFocused);
 
   const availableCols = paneWidth?.rightPaneWidth ?? columns;
   const availableRows = Math.max(rows - 1, 1);
@@ -93,14 +134,16 @@ export function TerminalPanel({
           };
         });
 
-        setLines(prevLines => {
-          const cleaned = stripCursorSequences(event.data);
-          const merged = (prevLines.join('\n') + cleaned).slice(
-            -OUTPUT_BUFFER_CEILING,
-          );
-          return merged.split('\n');
+        const surface = surfaceRef.current;
+        const writePromise =
+          event.raw.byteLength > 0
+            ? surface.writeBytes(event.raw)
+            : surface.write(stripOscSequences(event.data));
+        void writePromise.then(() => {
+          if (surfaceRef.current !== surface) return;
+          setAnsiLines(surface.getAnsiLines({ showCursor: panelFocusedRef.current }));
+          scrollRef.current?.scrollToBottom();
         });
-        scrollRef.current?.scrollToBottom();
       } else if (event.type === 'terminal.spawned') {
         terminalWriteRef.status = 'running';
         setAppState(prev => ({
@@ -120,7 +163,7 @@ export function TerminalPanel({
             status: 'idle' as const,
           },
         }));
-        setLines(prev => [
+        setAnsiLines(prev => [
           ...prev,
           `[Terminal exited (code: ${event.exitCode}, signal: ${event.signal})]`,
         ]);
@@ -147,6 +190,8 @@ export function TerminalPanel({
   useEffect(() => {
     const manager = managerRef.current;
     manager.resize(Math.max(availableCols, 1), Math.max(availableRows, 1));
+    surfaceRef.current.resize(Math.max(availableCols, 1), Math.max(availableRows, 1));
+    setAnsiLines(surfaceRef.current.getAnsiLines({ showCursor: panelFocused }));
   }, [availableCols, availableRows]);
 
   useEffect(() => {
@@ -156,46 +201,34 @@ export function TerminalPanel({
     }
   }, [visible]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    panelFocusedRef.current = panelFocused;
     setTerminalPanelFocused(panelFocused);
+  }, [panelFocused]);
+
+  useEffect(() => {
+    panelFocusedRef.current = panelFocused;
+    setAnsiLines(surfaceRef.current.getAnsiLines({ showCursor: panelFocused }));
+  }, [panelFocused]);
+
+  useEffect(() => {
     return () => {
       setTerminalPanelFocused(false);
     };
-  }, [panelFocused]);
+  }, []);
 
   useInput((input, key, event) => {
     if (!panelFocused) return;
     event.stopImmediatePropagation();
-    if (key.ctrl && input === 'b') {
+    const action = getTerminalPanelAction(input, key);
+    if (action.type === 'blur') {
       onRequestBlur?.();
-    } else if (key.wheelUp) {
-      scrollRef.current?.scrollBy(-3);
-    } else if (key.wheelDown) {
-      scrollRef.current?.scrollBy(3);
-    } else if (key.ctrl && input === 'c') {
-      managerRef.current.signal('sigint');
-    } else if (key.ctrl && input === 'd') {
-      void terminalPanelWrite('\x04');
-    } else if (key.ctrl && input === 'z') {
-      managerRef.current.signal('sigstop');
-    } else if (key.return) {
-      void terminalPanelWrite('\r');
-    } else if (key.tab) {
-      void terminalPanelWrite('\t');
-    } else if (key.backspace || key.delete) {
-      void terminalPanelWrite('\x7f');
-    } else if (key.escape) {
-      void terminalPanelWrite('\x1b');
-    } else if (key.upArrow) {
-      void terminalPanelWrite('\x1b[A');
-    } else if (key.downArrow) {
-      void terminalPanelWrite('\x1b[B');
-    } else if (key.leftArrow) {
-      void terminalPanelWrite('\x1b[D');
-    } else if (key.rightArrow) {
-      void terminalPanelWrite('\x1b[C');
-    } else if (input) {
-      void terminalPanelWrite(input);
+    } else if (action.type === 'scroll') {
+      scrollRef.current?.scrollBy(action.delta);
+    } else if (action.type === 'signal') {
+      managerRef.current.signal(action.kind);
+    } else if (action.type === 'write') {
+      void terminalPanelWrite(action.data);
     }
   }, { allowWhenTerminalPanelFocused: true });
 
@@ -208,6 +241,7 @@ export function TerminalPanel({
       flexDirection="column"
       height="100%"
       width="100%"
+      opaque
       onFocus={() => {
         if (isControlledFocus) {
           onRequestFocus?.();
@@ -230,11 +264,15 @@ export function TerminalPanel({
         paddingX={0}
         overflowX="hidden"
       >
-        {lines.length > 0 ? <Ansi>{lines.join('\n')}</Ansi> : <Text dimColor>Waiting for shell...</Text>}
+        {ansiLines.length > 0 ? (
+          <RawAnsi lines={ansiLines} width={Math.max(availableCols, 1)} />
+        ) : <Text dimColor>Waiting for shell...</Text>}
       </ScrollBox>
       <Box height={1} paddingX={1} borderTop borderColor="comment" data-testid="terminal-status">
-        <Text dimColor>
-          {panelFocused ? 'tty:active' : 'tty:idle'} | pid:{session.ptyPid ?? '-'} | {session.status}
+        <Text dimColor wrap="truncate">
+          {panelFocused
+            ? `tty:active | pid:${session.ptyPid ?? '-'} | ${session.status}`
+            : `tty:idle | press Ctrl+B to focus terminal | pid:${session.ptyPid ?? '-'} | ${session.status}`}
         </Text>
       </Box>
     </Box>

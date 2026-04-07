@@ -5,6 +5,7 @@ export class WorkerProtocolHandler {
   private readonly backend = new PtyBackend();
   private unsubscribePty: (() => void) | null = null;
   private readonly emit: (event: WorkerEvent) => void;
+  private outputPaused = false;
 
   constructor(emit: (event: WorkerEvent) => void) {
     this.emit = emit;
@@ -20,10 +21,12 @@ export class WorkerProtocolHandler {
           command.rows,
         );
         this.unsubscribePty?.();
-        const onData = (data: string) => {
+        const onData = (data: string | Uint8Array) => {
+          const bytes =
+            typeof data === 'string' ? Buffer.from(data, 'utf-8') : Buffer.from(data)
           this.emit({
             type: 'output',
-            dataBase64: Buffer.from(data, 'utf-8').toString('base64'),
+            dataBase64: bytes.toString('base64'),
             ts: Date.now(),
           });
         };
@@ -81,5 +84,16 @@ export class WorkerProtocolHandler {
   shutdown(): void {
     this.backend.kill();
   }
-}
 
+  pauseOutput(): void {
+    if (this.outputPaused) return;
+    this.outputPaused = true;
+    this.backend.pause();
+  }
+
+  resumeOutput(): void {
+    if (!this.outputPaused) return;
+    this.outputPaused = false;
+    this.backend.resume();
+  }
+}

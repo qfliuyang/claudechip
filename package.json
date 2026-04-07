@@ -43,6 +43,7 @@
     "@opentelemetry/sdk-metrics": "*",
     "@opentelemetry/sdk-trace-base": "*",
     "@opentelemetry/semantic-conventions": "*",
+    "@xterm/headless": "^6.0.0",
     "ajv": "*",
     "asciichart": "*",
     "auto-bind": "*",

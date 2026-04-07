@@ -26,7 +26,9 @@ export class PtyBackend {
       cols: Math.max(1, cols),
       rows: Math.max(1, rows),
       name: 'xterm-256color',
-    });
+      encoding: null,
+      handleFlowControl: true,
+    }) as unknown as nodePty.IPty;
     return this.pty;
   }
 
@@ -36,6 +38,14 @@ export class PtyBackend {
 
   resize(cols: number, rows: number): void {
     this.pty?.resize(Math.max(1, cols), Math.max(1, rows));
+  }
+
+  pause(): void {
+    this.pty?.pause();
+  }
+
+  resume(): void {
+    this.pty?.resume();
   }
 
   kill(): void {
@@ -63,4 +73,3 @@ export class PtyBackend {
     return this.pty?.pid ?? null;
   }
 }
-

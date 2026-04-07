@@ -33,7 +33,7 @@ export type WorkerEvent =
 export type TerminalEvent =
   | { type: 'terminal.health'; health: TerminalHealth; reason?: string; ts: number }
   | { type: 'terminal.spawned'; pid: number; ts: number }
-  | { type: 'terminal.output'; data: string; bytes: number; ts: number }
+  | { type: 'terminal.output'; data: string; raw: Uint8Array; bytes: number; ts: number }
   | { type: 'terminal.exited'; exitCode: number; signal?: number; ts: number }
   | { type: 'terminal.write'; source: TerminalInputSource; requestId: string; bytes: number; ts: number }
   | { type: 'terminal.error'; code: string; message: string; ts: number };
@@ -72,4 +72,3 @@ export class NdjsonStreamParser<T = unknown> {
     return rest;
   }
 }
-

@@ -9,7 +9,10 @@ import {
   withRightPaneVisibility,
 } from '../layout/TwoPaneFocusArbiter.js';
 import { PaneWidthContext, type TwoPaneLayoutProps } from './TwoPaneLayout.js';
-import { setTerminalPanelFocused } from '../utils/terminalPanelFocus.js';
+import {
+  consumeTerminalPanelFocusRequest,
+  setTerminalPanelFocused,
+} from '../utils/terminalPanelFocus.js';
 import { getOriginalCwd, getTotalCostUSD } from '../bootstrap/state.js';
 import path from 'path';
 
@@ -24,10 +27,11 @@ export interface TwoPaneRuntimeV2Props extends TwoPaneLayoutProps {
 const MIN_TWO_PANE_COLUMNS = 100;
 const MIN_PANE_COLS = 32;
 const BORDER_COLS = 1;
-// Each pane box with borderStyle="round" consumes 2 rows (top + bottom border)
-const PANE_BORDER_ROWS = 2;
+const PANE_HEADER_ROWS = 1;
 // Single bottom statusbar row
 const STATUSBAR_ROWS = 1;
+const LEFT_PANE_ACCENT = 'suggestion' as const;
+const RIGHT_PANE_ACCENT = 'background' as const;
 
 export function formatCost(usd: number): string {
   if (usd < 0.01) return '<$0.01';
@@ -70,12 +74,21 @@ export function TwoPaneRuntimeV2({
     if (!showRightPane) setTerminalPanelFocused(false);
   }, [showRightPane]);
 
+  React.useLayoutEffect(() => {
+    if (!showRightPane) return;
+    if (!consumeTerminalPanelFocusRequest()) return;
+    setFocusState(prev => ({ ...prev, owner: 'right' }));
+    setTerminalPanelFocused(true);
+  });
+
   useInput((input, key, event) => {
     if (!showRightPane) return;
     if (!key.ctrl || input !== 'b') return;
-    const next = onCtrlBToggle(focusState);
-    setFocusState(next);
-    setTerminalPanelFocused(next.owner === 'right');
+    setFocusState(prev => {
+      const next = onCtrlBToggle(prev);
+      setTerminalPanelFocused(next.owner === 'right');
+      return next;
+    });
     event.stopImmediatePropagation();
   });
 
@@ -96,12 +109,13 @@ export function TwoPaneRuntimeV2({
   const rightActive = focusState.owner === 'right';
 
   const paneWidthContext = {
-    leftPaneWidth: geometry.leftCols,
-    rightPaneWidth: geometry.rightCols,
+    leftPaneWidth: Math.max(1, geometry.leftCols),
+    rightPaneWidth: Math.max(1, geometry.rightCols),
   };
 
-  // Rows available to pane content after borders and statusbar
-  const innerRows = Math.max(1, geometry.rows - PANE_BORDER_ROWS - STATUSBAR_ROWS);
+  const innerRows = Math.max(1, geometry.rows - PANE_HEADER_ROWS - STATUSBAR_ROWS);
+  const leftInnerCols = Math.max(1, geometry.leftCols);
+  const rightInnerCols = Math.max(1, geometry.rightCols);
 
   // Status bar content
   const cwd = abbreviateCwd(statusCwd ?? getOriginalCwd());
@@ -123,19 +137,22 @@ export function TwoPaneRuntimeV2({
             width={geometry.leftCols}
             height="100%"
             flexShrink={0}
-            borderStyle="round"
-            borderColor={leftActive ? 'success' : undefined}
-            borderDimColor={!leftActive}
-            borderText={{
-              content: leftActive ? '● claudechip' : '○ claudechip',
-              position: 'top',
-              align: 'start',
-              offset: 1,
-            }}
+            opaque
             data-testid="left-pane-v2"
+            flexDirection="column"
           >
-            <TerminalSizeContext.Provider value={{ columns: geometry.leftCols - 2, rows: innerRows }}>
-              <Box width="100%" height="100%" overflow="hidden">
+            <Box height={PANE_HEADER_ROWS} paddingX={1} flexShrink={0} opaque>
+              <Text color={LEFT_PANE_ACCENT} dimColor={!leftActive} bold={leftActive}>
+                {leftActive ? '●' : '○'} claudechip
+              </Text>
+            </Box>
+            <TerminalSizeContext.Provider value={{ columns: leftInnerCols, rows: innerRows }}>
+              <Box
+                width={leftInnerCols}
+                height={innerRows}
+                overflow="hidden"
+                opaque
+              >
                 {leftPane}
               </Box>
             </TerminalSizeContext.Provider>
@@ -146,9 +163,13 @@ export function TwoPaneRuntimeV2({
             width={geometry.dividerCols}
             height="100%"
             flexShrink={0}
+            opaque
             data-testid="pane-divider-v2"
+            justifyContent="center"
           >
-            <Box width={1} height="100%" borderLeft borderColor={rightActive ? 'success' : 'comment'} borderDimColor={leftActive} />
+            <Text color={rightActive ? RIGHT_PANE_ACCENT : LEFT_PANE_ACCENT} dimColor={!rightActive && !leftActive}>
+              |
+            </Text>
           </Box>
 
           {/* Right pane — terminal */}
@@ -156,25 +177,27 @@ export function TwoPaneRuntimeV2({
             width={geometry.rightCols}
             height="100%"
             flexShrink={0}
-            borderStyle="round"
-            borderColor={rightActive ? 'success' : undefined}
-            borderDimColor={!rightActive}
-            borderText={{
-              content: rightActive ? '● terminal' : '○ terminal',
-              position: 'top',
-              align: 'start',
-              offset: 1,
-            }}
+            opaque
             data-testid="right-pane-v2"
+            flexDirection="column"
           >
-            <TerminalSizeContext.Provider value={{ columns: geometry.rightCols - 2, rows: innerRows }}>
-              <Box width="100%" height="100%" overflow="hidden">
+            <Box height={PANE_HEADER_ROWS} paddingX={1} flexShrink={0} opaque>
+              <Text color={RIGHT_PANE_ACCENT} dimColor={!rightActive} bold={rightActive}>
+                {rightActive ? '●' : '○'} terminal
+              </Text>
+            </Box>
+            <TerminalSizeContext.Provider value={{ columns: rightInnerCols, rows: innerRows }}>
+              <Box
+                width={rightInnerCols}
+                height={innerRows}
+                overflow="hidden"
+                opaque
+              >
                 {React.isValidElement(rightPane)
                   ? React.cloneElement(rightPane as React.ReactElement<any>, {
                       focused: rightActive,
                       onRequestFocus: () => {
-                        const next = onCtrlBToggle({ ...focusState, owner: 'left' });
-                        setFocusState(next);
+                        setFocusState(prev => ({ ...prev, owner: 'right' }));
                         setTerminalPanelFocused(true);
                       },
                       onRequestBlur: () => {
@@ -195,10 +218,11 @@ export function TwoPaneRuntimeV2({
         height={STATUSBAR_ROWS}
         flexShrink={0}
         paddingX={1}
+        opaque
         data-testid="statusbar-v2"
       >
         <Text dimColor>
-          {leftActive ? '● chat' : '○ chat'}
+          <Text color={LEFT_PANE_ACCENT}>{leftActive ? '●' : '○'} chat</Text>
           {'  '}
           {cwd}
           {'  '}
