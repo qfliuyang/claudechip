@@ -1,6 +1,9 @@
+import type { TerminalContextSnapshot } from './TerminalContext.js';
+
 export type TerminalInputSource = 'human' | 'tool';
 export type TerminalIntent = 'interactive' | 'exec';
 export type TerminalHealth = 'starting' | 'running' | 'degraded' | 'stopped';
+export type { TerminalContextSnapshot, TerminalMode } from './TerminalContext.js';
 
 export type WorkerCommand =
   | {
@@ -34,6 +37,7 @@ export type TerminalEvent =
   | { type: 'terminal.health'; health: TerminalHealth; reason?: string; ts: number }
   | { type: 'terminal.spawned'; pid: number; ts: number }
   | { type: 'terminal.output'; data: string; raw: Uint8Array; bytes: number; ts: number }
+  | { type: 'terminal.context'; context: TerminalContextSnapshot; ts: number }
   | { type: 'terminal.exited'; exitCode: number; signal?: number; ts: number }
   | { type: 'terminal.write'; source: TerminalInputSource; requestId: string; bytes: number; ts: number }
   | { type: 'terminal.error'; code: string; message: string; ts: number };

@@ -7,6 +7,10 @@ import {
   terminalToolStatus,
   terminalToolWrite,
 } from '../../terminal/adapters/TerminalToolsAdapter.js';
+import {
+  buildTerminalGenerationMetaPrompt,
+  classifyTerminalRequest,
+} from '../terminal-mode/shared.js';
 import { requestTerminalPanelFocus } from '../../utils/terminalPanelFocus.js';
 
 const HELP_TEXT = [
@@ -47,8 +51,9 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
         onDone('Usage: /term send <text>', { display: 'system' });
         return null;
       }
+      const status = await terminalToolStatus();
       await terminalToolWrite(rest);
-      onDone(`Sent to terminal: ${rest}`, { display: 'system' });
+      onDone(`Sent to terminal (${status.context.summary}): ${rest}`, { display: 'system' });
       return null;
     }
 
@@ -95,9 +100,25 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       return null;
     }
 
+    const status = await terminalToolStatus();
+    if (classifyTerminalRequest(text, status.context.mode) === 'natural_language') {
+      onDone(`Interpreting /term input as a terminal task for ${status.context.summary}.`, {
+        display: 'system',
+        shouldQuery: true,
+        metaMessages: [
+          buildTerminalGenerationMetaPrompt({
+            commandName: 'term',
+            status,
+            userRequest: text,
+          }),
+        ],
+      });
+      return null;
+    }
+
     // Backward-compatible shorthand: /term <command>
     await terminalToolWrite(`${text}\n`);
-    onDone(`Sent to terminal: ${text}`, { display: 'system' });
+    onDone(`Sent to terminal (${status.context.summary}): ${text}`, { display: 'system' });
     return null;
   } catch (error) {
     onDone(

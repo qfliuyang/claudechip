@@ -4,6 +4,7 @@ import {
   logEvent,
 } from '../services/analytics/index.js'
 import type { ToolUseContext } from '../Tool.js'
+import type { TerminalContextSnapshot } from '../terminal/TerminalContext.js'
 import type { AgentDefinition } from '../tools/AgentTool/loadAgentsDir.js'
 import { isBuiltInAgent } from '../tools/AgentTool/loadAgentsDir.js'
 import { isEnvTruthy } from './envUtils.js'
@@ -44,6 +45,7 @@ export function buildEffectiveSystemPrompt({
   customSystemPrompt,
   defaultSystemPrompt,
   appendSystemPrompt,
+  terminalContext,
   overrideSystemPrompt,
 }: {
   mainThreadAgentDefinition: AgentDefinition | undefined
@@ -51,6 +53,7 @@ export function buildEffectiveSystemPrompt({
   customSystemPrompt: string | undefined
   defaultSystemPrompt: string[]
   appendSystemPrompt: string | undefined
+  terminalContext?: TerminalContextSnapshot
   overrideSystemPrompt?: string | null
 }): SystemPrompt {
   if (overrideSystemPrompt) {
@@ -107,6 +110,7 @@ export function buildEffectiveSystemPrompt({
   ) {
     return asSystemPrompt([
       ...defaultSystemPrompt,
+      ...(buildTerminalModeSystemPrompt(terminalContext) ?? []),
       `\n# Custom Agent Instructions\n${agentSystemPrompt}`,
       ...(appendSystemPrompt ? [appendSystemPrompt] : []),
     ])
@@ -118,6 +122,91 @@ export function buildEffectiveSystemPrompt({
       : customSystemPrompt
         ? [customSystemPrompt]
         : defaultSystemPrompt),
+    ...(buildTerminalModeSystemPrompt(terminalContext) ?? []),
     ...(appendSystemPrompt ? [appendSystemPrompt] : []),
   ])
+}
+
+function buildTerminalModeSystemPrompt(
+  terminalContext: TerminalContextSnapshot | undefined,
+): string[] | null {
+  if (!terminalContext) return null
+
+  const meaningfulMode =
+    terminalContext.mode !== 'shell' ||
+    terminalContext.transport !== 'local' ||
+    terminalContext.app !== 'shell' ||
+    terminalContext.host !== null
+
+  if (!meaningfulMode) return null
+
+  const hostLine =
+    terminalContext.transport === 'ssh'
+      ? `- The right terminal pane is currently attached to a remote session${terminalContext.host ? ` on host \`${terminalContext.host}\`` : ''}.`
+      : '- The right terminal pane is currently local.'
+
+  const promptLine = terminalContext.promptReady
+    ? '- The terminal appears ready for another command.'
+    : '- The terminal does not appear to be sitting at a normal shell prompt right now.'
+
+  const recentCommandLine = terminalContext.recentCommand
+    ? `- The most recent committed terminal command was: \`${terminalContext.recentCommand}\``
+    : null
+
+  const modeGuidance =
+    terminalContext.mode === 'innovus'
+      ? [
+          '- The user is currently working inside Innovus or a closely related EDA shell.',
+          '- Prefer Innovus/Tcl-aware reasoning when the user asks about timing, CTS, routing, reports, or debug in the right pane.',
+          '- If suggesting `/term` actions, generate commands that make sense inside Innovus, not ordinary shell commands, unless you explicitly tell the user to exit back to the shell.',
+        ]
+      : terminalContext.mode === 'icc2_shell'
+        ? [
+            '- The user is currently working inside Synopsys ICC2 shell.',
+            '- Prefer ICC2 Tcl commands, reporting patterns, and physical-design debugging workflows rather than generic shell advice.',
+            '- If suggesting `/term` actions, generate commands that make sense inside `icc2_shell`.',
+          ]
+        : terminalContext.mode === 'pt_shell'
+          ? [
+              '- The user is currently working inside Synopsys PrimeTime shell.',
+              '- Prefer timing-analysis and report-debug reasoning in PrimeTime Tcl terms rather than generic shell advice.',
+              '- If suggesting `/term` actions, generate commands that make sense inside `pt_shell`.',
+            ]
+      : terminalContext.mode === 'vim'
+        ? [
+            '- The right pane is currently in vim-like editor mode.',
+            '- Avoid assuming shell command injection is safe; if suggesting `/term` actions, be explicit that the pane is in an editor and command bytes may affect the buffer.',
+          ]
+        : terminalContext.mode === 'tmux'
+          ? [
+              '- The right pane is currently inside tmux.',
+              '- Assume the user may be interacting with panes, sessions, or nested shells rather than a bare shell.',
+            ]
+          : terminalContext.mode === 'ssh'
+            ? [
+                '- The right pane is currently an SSH-backed shell.',
+                '- When discussing files, logs, or tools, assume they may live on the remote machine rather than the local workspace.',
+              ]
+            : terminalContext.mode === 'eda'
+              ? [
+                  '- The right pane appears to be inside an EDA tool shell rather than a plain Unix shell.',
+                ]
+              : [
+                  `- The right pane terminal mode is currently classified as \`${terminalContext.mode}\`.`,
+                ]
+
+  return [
+    [
+      '# Right Pane Terminal Context',
+      `- Current classified mode: \`${terminalContext.mode}\``,
+      `- Context summary: ${terminalContext.summary}`,
+      hostLine,
+      promptLine,
+      recentCommandLine,
+      ...modeGuidance,
+      '- Adapt your reasoning and any `/term` command suggestions to this terminal mode automatically.',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  ]
 }

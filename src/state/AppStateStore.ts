@@ -37,6 +37,7 @@ import { getInitialSettings } from '../utils/settings/settings.js'
 import type { SettingsJson } from '../utils/settings/types.js'
 import { shouldEnableThinkingByDefault } from '../utils/thinking.js'
 import type { Store } from './store.js'
+import type { TerminalContextSnapshot } from '../terminal/TerminalContext.js'
 
 export type CompletionBoundary =
   | { type: 'complete'; completedAt: number; outputTokens: number }
@@ -92,6 +93,7 @@ export type TerminalSession = {
   ptyPid: number | null
   outputBuffer: string
   lastOutputAt: number
+  context: TerminalContextSnapshot
 }
 
 export type AppState = DeepImmutable<{
@@ -515,6 +517,18 @@ export function getDefaultAppState(): AppState {
       ptyPid: null,
       outputBuffer: '',
       lastOutputAt: 0,
+      context: {
+        mode: 'shell',
+        transport: 'local',
+        app: 'shell',
+        host: null,
+        promptReady: true,
+        confidence: 0.35,
+        summary: 'local · shell · ready',
+        recentCommand: null,
+        lastHumanInputAt: null,
+        lastToolInputAt: null,
+      },
     },
     toolPermissionContext: {
       ...getEmptyToolPermissionContext(),

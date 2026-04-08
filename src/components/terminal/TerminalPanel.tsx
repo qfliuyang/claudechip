@@ -177,6 +177,14 @@ export function TerminalPanel({
             status,
           },
         }));
+      } else if (event.type === 'terminal.context') {
+        setAppState(prev => ({
+          ...prev,
+          terminalSession: {
+            ...prev.terminalSession,
+            context: event.context,
+          },
+        }));
       }
     });
 
@@ -271,8 +279,8 @@ export function TerminalPanel({
       <Box height={1} paddingX={1} borderTop borderColor="comment" data-testid="terminal-status">
         <Text dimColor wrap="truncate">
           {panelFocused
-            ? `tty:active | pid:${session.ptyPid ?? '-'} | ${session.status}`
-            : `tty:idle | press Ctrl+B to focus terminal | pid:${session.ptyPid ?? '-'} | ${session.status}`}
+            ? `tty:active | ${session.context.summary} | pid:${session.ptyPid ?? '-'} | ${session.status}`
+            : `tty:idle | press Ctrl+B to focus terminal | ${session.context.summary} | pid:${session.ptyPid ?? '-'} | ${session.status}`}
         </Text>
       </Box>
     </Box>

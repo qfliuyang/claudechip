@@ -24,6 +24,7 @@ import help from './commands/help/index.js'
 import ide from './commands/ide/index.js'
 import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
+import innovus from './commands/innovus/index.js'
 import keybindings from './commands/keybindings/index.js'
 import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
@@ -52,11 +53,14 @@ const agentsPlatform =
 /* eslint-enable @typescript-eslint/no-require-imports */
 import securityReview from './commands/security-review.js'
 import bughunter from './commands/bughunter/index.js'
+import icc2Shell from './commands/icc2_shell/index.js'
+import ptShell from './commands/pt_shell/index.js'
 import terminalSetup from './commands/terminalSetup/index.js'
 import term from './commands/term/index.js'
 import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
+import vimterm from './commands/vimterm/index.js'
 // SKIPPED: import { feature } from 'bun:bundle'; - causes hang - causes hang
 // Dead code elimination: conditional imports - ALL DISABLED (feature() causes hang)
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -237,6 +241,7 @@ const COMMANDS = memoize((): Command[] => [
   help,
   ide,
   init,
+  innovus,
   keybindings,
   installGitHubApp,
   installSlackApp,
@@ -265,6 +270,8 @@ const COMMANDS = memoize((): Command[] => [
   ultrareview,
   rewind,
   securityReview,
+  icc2Shell,
+  ptShell,
   terminalSetup,
   term,
   upgrade,
@@ -274,6 +281,7 @@ const COMMANDS = memoize((): Command[] => [
   usage,
   usageReport,
   vim,
+  vimterm,
   ...(webCmd ? [webCmd] : []),
   ...(forkCmd ? [forkCmd] : []),
   ...(buddy ? [buddy] : []),

@@ -131,4 +131,56 @@ test('/term command family controls the integrated terminal session', async () =
 
   const runResult = outputs.at(-1) ?? ''
   expect(runResult).toContain('term-command-ok')
+
+  outputs.length = 0
+  await termCommandCall(message => {
+    outputs.push(message ?? '')
+  }, ctx, 'send echo context-aware')
+
+  const sendResult = outputs.at(-1) ?? ''
+  expect(sendResult).toContain('Sent to terminal (')
+})
+
+test('/term natural-language terminal tasks hand off to the model instead of typing immediately', async () => {
+  const outputs: string[] = []
+  const optionsSeen: Array<{
+    shouldQuery?: boolean
+    metaMessages?: string[]
+  }> = []
+  const manager = getTerminalSessionManager()
+  await manager.ensureStarted()
+
+  const writes: string[] = []
+  const unsubscribe = manager.subscribe(event => {
+    if (event.type === 'terminal.write') {
+      writes.push(event.requestId)
+    }
+  })
+
+  try {
+    await termCommandCall(
+      (message, options) => {
+        outputs.push(message ?? '')
+        optionsSeen.push({
+          shouldQuery: options?.shouldQuery,
+          metaMessages: options?.metaMessages,
+        })
+      },
+      {
+        setAppState(updater: (prev: { terminalPanelVisible: boolean }) => {
+          terminalPanelVisible: boolean
+        }) {
+          return updater({ terminalPanelVisible: false })
+        },
+      } as any,
+      'kill all process with name "dc_shell"',
+    )
+  } finally {
+    unsubscribe()
+  }
+
+  expect(outputs.at(-1)).toContain('Interpreting /term input as a terminal task')
+  expect(optionsSeen.at(-1)?.shouldQuery).toBe(true)
+  expect(optionsSeen.at(-1)?.metaMessages?.[0]).toContain('<terminal-task-request>')
+  expect(writes.length).toBe(0)
 })

@@ -3060,6 +3060,18 @@ async function run(): Promise<CommanderCommand> {
         ptyPid: null,
         outputBuffer: '',
         lastOutputAt: 0,
+        context: {
+          mode: 'shell',
+          transport: 'local',
+          app: 'shell',
+          host: null,
+          promptReady: true,
+          confidence: 0.35,
+          summary: 'local · shell · ready',
+          recentCommand: null,
+          lastHumanInputAt: null,
+          lastToolInputAt: null,
+        },
       },
       ...(isAdvisorEnabled() && advisorModel && {
         advisorModel

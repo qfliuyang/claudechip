@@ -1,11 +1,16 @@
 import { EventEmitter } from 'events';
 import {
   type TerminalEvent,
+  type TerminalContextSnapshot,
   type TerminalHealth,
   type TerminalInputSource,
   type TerminalIntent,
   type WorkerEvent,
 } from './TerminalProtocol.js';
+import {
+  TerminalContextTracker,
+  terminalContextEquals,
+} from './TerminalContext.js';
 import { TerminalSessionStore } from './TerminalSessionStore.js';
 import {
   buildWrappedCommand,
@@ -38,6 +43,7 @@ export interface TerminalStatusSnapshot {
   cwd: string;
   cols: number;
   rows: number;
+  context: TerminalContextSnapshot;
   store: ReturnType<TerminalSessionStore['stats']>;
   metrics: TerminalMetricsSnapshot;
 }
@@ -49,6 +55,7 @@ export interface TerminalSessionManager {
   getHealth(): TerminalHealth;
   getPid(): number | null;
   getStatus(): TerminalStatusSnapshot;
+  getContext(): TerminalContextSnapshot;
   signal(kind: 'sigint' | 'sigterm'): void;
   resize(cols: number, rows: number): void;
   write(
@@ -82,6 +89,7 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
   private pendingPingId: string | null = null;
   private pendingPingAt = 0;
   private outputDecoder = new TextDecoder();
+  private readonly context = new TerminalContextTracker();
 
   async ensureStarted(): Promise<void> {
     if (this.health === 'running' && this.worker?.isRunning()) return;
@@ -181,9 +189,14 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
       cwd: this.cwd,
       cols: this.cols,
       rows: this.rows,
+      context: this.context.getSnapshot(),
       store: this.store.stats(),
       metrics: this.metrics.snapshot(),
     };
+  }
+
+  getContext(): TerminalContextSnapshot {
+    return this.context.getSnapshot();
   }
 
   signal(kind: 'sigint' | 'sigterm' | 'sigstop'): void {
@@ -222,6 +235,9 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
     }
 
     try {
+      const previousContext = this.context.getSnapshot();
+      const nextContext = this.context.recordWrite(input, meta.source);
+      this.emitContextIfChanged(previousContext, nextContext);
       this.worker.send({
         type: 'write',
         dataBase64: Buffer.from(input, 'utf-8').toString('base64'),
@@ -365,6 +381,9 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
   private handleWorkerEvent(event: WorkerEvent): void {
     if (event.type === 'spawned') {
       this.outputDecoder = new TextDecoder();
+      const previousContext = this.context.getSnapshot();
+      const nextContext = this.context.reset();
+      this.emitContextIfChanged(previousContext, nextContext);
       this.pid = event.pid;
       this.emit({ type: 'terminal.spawned', pid: event.pid, ts: Date.now() });
       return;
@@ -373,6 +392,9 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
     if (event.type === 'output') {
       const raw = Buffer.from(event.dataBase64, 'base64');
       const data = this.outputDecoder.decode(raw, { stream: true });
+      const previousContext = this.context.getSnapshot();
+      const nextContext = this.context.recordOutput(data);
+      this.emitContextIfChanged(previousContext, nextContext);
       const before = this.store.stats().droppedBytes;
       this.store.appendOutput(data);
       const after = this.store.stats().droppedBytes;
@@ -389,6 +411,9 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
 
     if (event.type === 'exit') {
       this.outputDecoder = new TextDecoder();
+      const previousContext = this.context.getSnapshot();
+      const nextContext = this.context.reset();
+      this.emitContextIfChanged(previousContext, nextContext);
       this.pid = null;
       this.emit({
         type: 'terminal.exited',
@@ -489,6 +514,18 @@ class DefaultTerminalSessionManager implements TerminalSessionManager {
   private emit(event: TerminalEvent): void {
     this.store.recordEvent(event);
     this.emitter.emit('terminal_event', event);
+  }
+
+  private emitContextIfChanged(
+    previous: TerminalContextSnapshot,
+    next: TerminalContextSnapshot,
+  ): void {
+    if (terminalContextEquals(previous, next)) return;
+    this.emit({
+      type: 'terminal.context',
+      context: next,
+      ts: Date.now(),
+    });
   }
 }
 

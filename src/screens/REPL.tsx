@@ -2576,7 +2576,8 @@ export function REPL({
         toolUseContext,
         customSystemPrompt,
         defaultSystemPrompt,
-        appendSystemPrompt
+        appendSystemPrompt,
+        terminalContext: store.getState().terminalSession.context,
       });
       toolUseContext.renderedSystemPrompt = systemPrompt;
       const notificationAttachments = await getQueuedCommandAttachments(removedNotifications).catch(() => []);
@@ -2821,7 +2822,8 @@ export function REPL({
       toolUseContext,
       customSystemPrompt,
       defaultSystemPrompt,
-      appendSystemPrompt
+      appendSystemPrompt,
+      terminalContext: store.getState().terminalSession.context,
     });
     toolUseContext.renderedSystemPrompt = systemPrompt;
     queryCheckpoint('query_query_start');
@@ -4999,7 +5001,8 @@ export function REPL({
               toolUseContext: context,
               customSystemPrompt: context.options.customSystemPrompt,
               defaultSystemPrompt: defaultSysPrompt,
-              appendSystemPrompt: context.options.appendSystemPrompt
+              appendSystemPrompt: context.options.appendSystemPrompt,
+              terminalContext: appState.terminalSession.context
             });
             const [userContext, systemContext] = await Promise.all([getUserContext(), getSystemContext()]);
             const result = await partialCompactConversation(compactMessages, messageIndex, context, {
