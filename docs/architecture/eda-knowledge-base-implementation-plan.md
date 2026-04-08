@@ -22,6 +22,7 @@ Translate the EDA knowledge base architecture into a concrete plan for this repo
 Create under `src/eda-kb/`:
 
 - `src/eda-kb/EdaKnowledgeTypes.ts`
+- `src/eda-kb/IntentClassifier.ts`
 - `src/eda-kb/EdaKnowledgeRouter.ts`
 - `src/eda-kb/EdaKnowledgeGateway.ts`
 - `src/eda-kb/EdaEvidenceAssembler.ts`
@@ -31,6 +32,7 @@ Create under `src/eda-kb/`:
 Responsibilities:
 
 - types and schemas
+- intent classification
 - mode and intent routing
 - lookup orchestration
 - evidence bundle assembly
@@ -56,6 +58,7 @@ Responsibilities:
 - extract structured records
 - compute contextual chunk text
 - build knowledge packs
+- keep versioned source metadata stable
 
 ## 2.3 Serving Store Modules
 
@@ -74,6 +77,7 @@ Responsibilities:
 - exact lookup
 - keyword lookup
 - hybrid retrieval
+- expose pack health
 
 ## 2.4 MCP Server Modules
 
@@ -217,12 +221,16 @@ export interface KnowledgePackManifest {
   tool: EdaTool
   version: string
   createdAt: string
+  embeddingModel: string
+  vectorIndexKind: 'sqlite-vec' | 'faiss'
   sourceDocs: Array<{
     docId: string
     title: string
     path: string
+    format: 'pdf' | 'html' | 'md' | 'txt'
     docType: string
     sha256: string
+    extractionMethod: 'rule' | 'llm' | 'hybrid'
   }>
 }
 
@@ -245,6 +253,7 @@ Store generated knowledge packs under:
 - `var/eda-kb/packs/<vendor>/<tool>/<version>/flows.jsonl`
 - `var/eda-kb/packs/<vendor>/<tool>/<version>/chunks.jsonl`
 - `var/eda-kb/packs/<vendor>/<tool>/<version>/indexes/*`
+- `var/eda-kb/packs/<vendor>/<tool>/<version>/health.json`
 
 Input manuals live outside the pack output path, for example:
 
@@ -257,6 +266,22 @@ This keeps:
 - runtime indexes
 
 separate and auditable.
+
+## 4.1 Default Local Retrieval Stack
+
+To preserve portability in air-gapped or semi-isolated EDA environments, the default retrieval stack should be local-first:
+
+- exact lookup tables for command names and aliases
+- BM25 or equivalent local keyword index
+- local embedding model
+- local vector store
+
+Recommended default choices for v1:
+
+- embedding model: local model selected during ingestion and recorded in pack manifest
+- vector index: `sqlite-vec` first, `faiss` as acceptable fallback
+
+This keeps runtime retrieval independent of hosted embedding services.
 
 ## 5) MCP API
 
@@ -289,6 +314,7 @@ Output:
 - top chunks
 - citations
 - confidence
+- pack health
 
 ### `eda_command_resolve`
 
@@ -391,6 +417,43 @@ Per user turn:
 7. inject bundle into prompt context
 8. answer normally or execute through `/term`
 
+## 6.0 Intent Classification
+
+File: `src/eda-kb/IntentClassifier.ts`
+
+Responsibilities:
+
+- classify user turn into one or more `EdaIntent` values
+- return confidence
+- decide whether multi-intent retrieval is needed
+
+Recommended strategy:
+
+1. rule-first classifier
+   - exact command names
+   - command-like flags or Tcl structure
+   - common troubleshooting phrases
+   - report/debug verbs
+2. optional lightweight model-assisted classification only when rule confidence is low
+3. fallback to multi-intent retrieval when confidence is below threshold
+
+Suggested output:
+
+```ts
+export interface IntentClassification {
+  primary: EdaIntent
+  secondary?: EdaIntent[]
+  confidence: number
+  reason: string
+}
+```
+
+Default threshold guidance:
+
+- `>= 0.8`: single-intent route
+- `0.5 - 0.79`: multi-intent route with capped fanout
+- `< 0.5`: general fallback with warning in internal diagnostics
+
 ## 6.2 Evidence Bundle
 
 File: `src/eda-kb/EdaEvidenceAssembler.ts`
@@ -415,6 +478,17 @@ Guidelines:
 - keep bundles small
 - prefer typed records over raw chunks
 - max 3 to 5 supporting records in normal turns
+- enforce ranking order:
+  - `CommandRecord`
+  - `FlowPrimitive`
+  - `ConceptRecord`
+  - `DocChunk`
+- enforce a hard evidence token budget
+
+Suggested default budget:
+
+- evidence bundle soft cap: 1500 tokens
+- evidence bundle hard cap: 2000 tokens
 
 ## 6.3 Silent Routing Policy
 
@@ -425,6 +499,32 @@ Default routing:
 - if current mode is an EDA shell and query is tool-specific, retrieve automatically
 - if mode is `shell` or `ssh` but the user names an EDA tool, retrieve automatically
 - if mode is `vim`, only retrieve if query content is clearly EDA-related
+- if no matching knowledge pack is available for detected mode/tool/version, mark runtime as degraded and inject an internal warning
+
+## 6.4 Cold Start and Empty-KB Policy
+
+The serving layer must expose pack health before retrieval begins.
+
+File:
+
+- `src/eda-kb/store/KnowledgePackStore.ts`
+
+Required behavior:
+
+- report whether a pack exists for the active tool/version
+- report whether only a generic vendor/tool pack exists
+- distinguish:
+  - `ready`
+  - `missing_pack`
+  - `degraded_pack`
+  - `loading`
+
+If no pack is available:
+
+- do not block the turn
+- do not silently act as if KB grounding succeeded
+- inject an internal warning into the turn context
+- allow fallback model reasoning
 
 ## 7) Ingestion Pipeline
 
@@ -438,10 +538,30 @@ Create a manifest per imported doc set:
 - doc path
 - doc type
 - checksum
+- source format
+- source URI or provenance label
+- extraction policy
 
 File:
 
 - `src/eda-kb/ingest/DocManifest.ts`
+
+Suggested schema:
+
+```ts
+export interface SourceDocumentManifest {
+  docId: string
+  vendor: EdaVendor
+  tool: EdaTool
+  version: string
+  title: string
+  path: string
+  sourceUri?: string
+  format: 'pdf' | 'html' | 'md' | 'txt'
+  docType: 'user_guide' | 'command_ref' | 'tutorial' | 'troubleshooting'
+  sha256: string
+}
+```
 
 ## 7.2 Parsing
 
@@ -468,6 +588,12 @@ Classify parsed sections into:
 - flow recipe
 
 This reduces extraction ambiguity downstream.
+
+Classifier policy:
+
+- rule-first for obvious command-reference patterns
+- optional LLM-assisted fallback for ambiguous narrative sections
+- write section class plus confidence into intermediate artifacts
 
 ## 7.4 Structured Extraction
 
@@ -520,6 +646,12 @@ Outputs:
 
 Publishing a pack should be atomic so runtime readers never see half-built state.
 
+Pack publish should also emit:
+
+- health summary
+- extraction counts
+- embedding/index metadata
+
 ## 8) Low-Latency Serving Design
 
 ## 8.1 Target Budgets
@@ -543,6 +675,8 @@ Hot path should use:
 - prefix match
 - small BM25/hybrid search
 
+Hot path should not require vector search if exact/keyword confidence is already high.
+
 ## 8.3 Warm Path Rules
 
 Warm path can use:
@@ -553,6 +687,13 @@ Warm path can use:
 
 But should still limit fanout aggressively.
 
+Suggested warm-path fanout caps:
+
+- top 3 command records
+- top 2 flow primitives
+- top 2 concept records
+- top 3 doc chunks
+
 ## 9) Integration Phases
 
 ## Phase A: Types and Router Skeleton
@@ -560,6 +701,7 @@ But should still limit fanout aggressively.
 Deliver:
 
 - core schemas
+- intent classifier contract
 - mode-to-tool namespace mapping
 - intent classifier
 - runtime router skeleton
@@ -601,6 +743,7 @@ Deliver:
 Exit gate:
 
 - command lookup against ingested pack is under latency target on local machine
+- pack health endpoint exists
 
 ## Phase D: MCP Server
 
@@ -657,6 +800,8 @@ Exit gate:
 - intent classification
 - command extraction normalization
 - evidence bundle truncation rules
+- pack health states
+- section classification confidence handling
 
 ## 10.2 Integration Tests
 
@@ -670,6 +815,7 @@ Exit gate:
 - command lookup latency
 - small script synthesis latency
 - namespace fanout caps
+- exact-hit vs vector-fallback rates
 
 ## 10.4 Acceptance Tests
 
@@ -719,6 +865,8 @@ Done when:
 - whether `dc_shell` should be added to the first mode bundle set
 - how to handle licensed/vendor-proprietary documentation packaging and distribution
 - whether flow primitives should start as curated YAML/JSON before automatic extraction is trusted
+- whether section classification should remain mostly rule-based for v1
+- whether `sqlite-vec` should be the default vector backend or only the portability fallback
 
 ## References
 

@@ -53,6 +53,8 @@ The knowledge base is not a generic vector store. It is a typed system built aro
 
 The runtime path does not read raw manuals directly except as a fallback. Normal user turns should retrieve from prebuilt knowledge objects and indexes.
 
+The runtime router must also classify intent explicitly rather than relying on prompt heuristics alone. Intent routing is part of the platform, not left to the model on each turn.
+
 ## Why This Architecture
 
 ### 1) EDA Questions Are Not One Retrieval Problem
@@ -246,6 +248,7 @@ Outputs:
 - tool namespace
 - intent
 - retrieval tier
+- confidence
 
 The user should not invoke this manually.
 
@@ -256,6 +259,22 @@ The user should not invoke this manually.
 - `troubleshooting`
 - `report_interpretation`
 - `script_synthesis`
+
+### Intent Classification Policy
+
+Intent classification must be explicit and confidence-scored.
+
+Recommended approach:
+
+1. rule-first classifier for obvious cases
+   - exact command name present
+   - command-like syntax present
+   - common troubleshooting phrases
+   - common report/debug verbs
+2. lightweight model-assisted classification only when rule confidence is low
+3. fallback to multi-intent retrieval when confidence remains ambiguous
+
+This avoids forcing a full model turn just to decide which retriever to use.
 
 ### Example Routing
 
@@ -296,6 +315,14 @@ Uses:
 - exact lookup
 - prefix lookup
 - small BM25/hybrid query over command catalog
+
+Default retrieval order:
+
+1. exact command name
+2. alias match
+3. prefix match
+4. keyword/BM25
+5. vector/hybrid fallback
 
 Target:
 
@@ -350,7 +377,35 @@ Instead:
 
 This means the KB acts as a platform service beneath the assistant, not as a user-triggered skill.
 
-## 8) MCP Boundary
+Evidence injection must be budgeted and ranked. The default ranking order is:
+
+1. `CommandRecord`
+2. `FlowPrimitive`
+3. `ConceptRecord`
+4. `DocChunk`
+
+The runtime should prefer a small, high-confidence evidence bundle over a large mixed-context dump.
+
+## 8) Ingestion Specificity
+
+The ingestion pipeline must explicitly track:
+
+- source format
+- vendor
+- tool
+- version
+- document type
+- extraction method
+
+Supported input formats for v1 should be declared up front:
+
+- PDF
+- HTML
+- Markdown or plain text exports
+
+Versioned manuals must be stored as separate namespaces, even when content overlaps heavily across releases.
+
+## 9) MCP Boundary
 
 Expose the online serving plane through a local MCP server.
 
@@ -365,7 +420,26 @@ The local MCP server becomes the stable boundary between:
 - ingestion and serving internals
 - ClaudeChip runtime components
 
-## 9) Reliability Policy
+## 10) Retrieval and Indexing Strategy
+
+The serving plane must prefer local, portable retrieval components.
+
+Default recommendation:
+
+- exact lookup tables for commands and aliases
+- BM25 or equivalent keyword index
+- local vector index for semantic fallback
+
+Because many EDA environments are air-gapped or semi-isolated, the default vector strategy should not depend on a hosted embedding service.
+
+Preferred default:
+
+- local embedding model
+- local vector store such as SQLite-vec or FAISS
+
+This keeps both ingestion and serving deployable in restricted environments.
+
+## 11) Reliability Policy
 
 For tool-specific EDA questions:
 
@@ -377,12 +451,38 @@ For generated commands:
 - use `CommandRecord` and `FlowPrimitive` first
 - only fall back to free-form generation when KB confidence is low
 
+If no pack is available for the detected tool/version:
+
+- do not silently pretend the KB exists
+- inject an internal warning that the system is running without the expected pack
+- allow fallback reasoning, but mark it as lower-confidence behavior
+
 For runtime execution:
 
 - `/term` and mode-specific terminal commands still control the shared PTY
 - KB affects what commands are generated and why, not who owns terminal execution
 
-## Decision Summary
+## 12) Metrics and Observability
+
+Minimum runtime metrics:
+
+- retrieval latency by intent
+- exact-match hit rate
+- keyword hit rate
+- vector fallback rate
+- no-pack fallback rate
+- evidence bundle token size
+
+Minimum ingestion metrics:
+
+- documents parsed
+- sections classified
+- commands extracted
+- concepts extracted
+- flow primitives extracted
+- extraction failures by document
+
+## 13) Decision Summary
 
 ClaudeChip will use a:
 
@@ -402,7 +502,7 @@ This is the architecture that best satisfies:
 - source-backed guidance
 - sub-10-second interactive UX
 
-## Consequences
+## 14) Consequences
 
 ### Positive
 
