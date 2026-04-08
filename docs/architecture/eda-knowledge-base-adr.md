@@ -276,6 +276,15 @@ Recommended approach:
 
 This avoids forcing a full model turn just to decide which retriever to use.
 
+Recommended confidence policy:
+
+- high confidence: `>= 0.85`
+  - use rule-only routing
+- medium confidence: `0.50 - 0.84`
+  - allow lightweight model-assisted classification
+- low confidence: `< 0.50`
+  - use multi-intent retrieval fallback
+
 ### Example Routing
 
 If:
@@ -399,11 +408,15 @@ The ingestion pipeline must explicitly track:
 
 Supported input formats for v1 should be declared up front:
 
-- PDF
 - HTML
-- Markdown or plain text exports
+- Markdown
+- plain text exports
+
+PDF ingestion should be treated as a later expansion phase after the HTML/Markdown/text pipeline is stable and measurable.
 
 Versioned manuals must be stored as separate namespaces, even when content overlaps heavily across releases.
+
+Section classification should use a stable taxonomy so extraction remains testable and deterministic.
 
 ## 9) MCP Boundary
 
@@ -439,6 +452,8 @@ Preferred default:
 
 This keeps both ingestion and serving deployable in restricted environments.
 
+Embeddings do not need to live inline with `DocChunk` JSON records. Storing vectors only inside the local vector index is acceptable and preferred when it reduces pack size.
+
 ## 11) Reliability Policy
 
 For tool-specific EDA questions:
@@ -456,6 +471,12 @@ If no pack is available for the detected tool/version:
 - do not silently pretend the KB exists
 - inject an internal warning that the system is running without the expected pack
 - allow fallback reasoning, but mark it as lower-confidence behavior
+
+If multiple pack versions exist for the same tool:
+
+1. prefer the version explicitly resolved from runtime context
+2. otherwise fall back to the latest available compatible version
+3. record a version-mismatch warning when runtime context and selected pack diverge
 
 For runtime execution:
 

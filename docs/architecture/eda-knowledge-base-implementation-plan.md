@@ -141,6 +141,16 @@ export type EdaIntent =
   | 'report_interpretation'
   | 'script_synthesis'
 
+export type SectionType =
+  | 'command_synopsis'
+  | 'option_table'
+  | 'example'
+  | 'usage_note'
+  | 'warning'
+  | 'flow_description'
+  | 'report_description'
+  | 'prose'
+
 export interface SourceRef {
   docId: string
   title: string
@@ -203,6 +213,7 @@ export interface DocChunk {
   tool: EdaTool
   version: string
   docType: 'user_guide' | 'command_ref' | 'tutorial' | 'troubleshooting'
+  sectionType: SectionType
   headerPath: string[]
   sectionPath: string[]
   text: string
@@ -227,7 +238,7 @@ export interface KnowledgePackManifest {
     docId: string
     title: string
     path: string
-    format: 'pdf' | 'html' | 'md' | 'txt'
+    format: 'html' | 'md' | 'txt' | 'pdf'
     docType: string
     sha256: string
     extractionMethod: 'rule' | 'llm' | 'hybrid'
@@ -266,6 +277,8 @@ This keeps:
 - runtime indexes
 
 separate and auditable.
+
+Embeddings should live in the local vector index files under `indexes/`, not inline in `chunks.jsonl`, unless a future debug/export mode explicitly needs inline vectors.
 
 ## 4.1 Default Local Retrieval Stack
 
@@ -306,6 +319,8 @@ Input:
 }
 ```
 
+`version` should be optional at the tool boundary. When omitted, the serving layer resolves it from terminal/session context or falls back to the latest available pack for the selected tool namespace.
+
 Output:
 
 - top command records
@@ -334,6 +349,8 @@ Input:
   "version": "2023.06"
 }
 ```
+
+`version` should be optional here as well, with the same resolution policy.
 
 Output:
 
@@ -450,8 +467,8 @@ export interface IntentClassification {
 
 Default threshold guidance:
 
-- `>= 0.8`: single-intent route
-- `0.5 - 0.79`: multi-intent route with capped fanout
+- `>= 0.85`: rule-only single-intent route
+- `0.5 - 0.84`: model-assisted or capped multi-intent route
 - `< 0.5`: general fallback with warning in internal diagnostics
 
 ## 6.2 Evidence Bundle
@@ -526,6 +543,12 @@ If no pack is available:
 - inject an internal warning into the turn context
 - allow fallback model reasoning
 
+Version resolution policy:
+
+1. prefer version explicitly resolved from session or terminal context
+2. if absent, use the latest available version for the selected tool namespace
+3. if runtime context suggests a different version than the selected pack, emit a version-mismatch warning in diagnostics and pack health
+
 ## 7) Ingestion Pipeline
 
 ## 7.1 Source Manifest
@@ -557,15 +580,21 @@ export interface SourceDocumentManifest {
   title: string
   path: string
   sourceUri?: string
-  format: 'pdf' | 'html' | 'md' | 'txt'
+  format: 'html' | 'md' | 'txt' | 'pdf'
   docType: 'user_guide' | 'command_ref' | 'tutorial' | 'troubleshooting'
   sha256: string
+  extractionMethod: 'rule' | 'llm' | 'hybrid'
 }
 ```
 
 ## 7.2 Parsing
 
-Primary recommendation:
+Primary recommendation for v1:
+
+- ingest structured HTML, Markdown, and plain-text exports into a normalized intermediate form
+- defer first-class PDF ingestion until the v1 pipeline is stable
+
+Future recommendation for PDF-heavy corpora:
 
 - use Docling to parse PDFs/manuals into structured intermediate form
 
@@ -594,6 +623,20 @@ Classifier policy:
 - rule-first for obvious command-reference patterns
 - optional LLM-assisted fallback for ambiguous narrative sections
 - write section class plus confidence into intermediate artifacts
+
+Section classifier output should always carry:
+
+- `sectionType`
+- confidence
+- extraction notes when fallback classification was needed
+
+LLM extraction scope policy:
+
+- `rule`: default for well-structured HTML, Markdown, and command-reference pages
+- `llm`: optional enrichment for difficult narrative sections or poor source formatting; requires model access at ingest time only
+- `hybrid`: rule-extracted structure plus LLM-generated summaries or enrichments
+
+Air-gapped deployments must remain able to ingest and serve packs using `rule` extraction only.
 
 ## 7.4 Structured Extraction
 
