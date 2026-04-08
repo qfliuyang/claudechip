@@ -54,6 +54,7 @@ Create under `src/eda-kb/ingest/`:
 Responsibilities:
 
 - parse manuals
+- stage and ingest newly supplied user documents
 - classify sections
 - extract structured records
 - compute contextual chunk text
@@ -564,6 +565,7 @@ Create a manifest per imported doc set:
 - source format
 - source URI or provenance label
 - extraction policy
+- source origin
 
 File:
 
@@ -584,8 +586,11 @@ export interface SourceDocumentManifest {
   docType: 'user_guide' | 'command_ref' | 'tutorial' | 'troubleshooting'
   sha256: string
   extractionMethod: 'rule' | 'llm' | 'hybrid'
+  sourceOrigin: 'vendor_manual' | 'user_uploaded' | 'workspace_doc' | 'generated_note'
 }
 ```
+
+User-supplied documents should be normalized through this same manifest path. The runtime should never special-case an uploaded manual by reading it directly on every query.
 
 ## 7.2 Parsing
 
@@ -695,6 +700,16 @@ Pack publish should also emit:
 - extraction counts
 - embedding/index metadata
 
+Pack publish must support incremental refresh when a new source document is added:
+
+1. write the new `SourceDocumentManifest`
+2. rebuild the affected namespace in a staging area
+3. validate counts and index health
+4. atomically swap the active pack revision
+5. retain previous revision for rollback and diff inspection
+
+User-supplied documents should therefore become part of the persistent pack contents for the relevant namespace rather than transient session-only context.
+
 ## 8) Low-Latency Serving Design
 
 ## 8.1 Target Budgets
@@ -768,11 +783,13 @@ Deliver:
 - command extraction
 - concept extraction
 - pack writer
+- staged rebuild support for newly added source documents
 
 Exit gate:
 
 - can ingest at least one Innovus or PT doc set into a pack
 - pack contents are inspectable and versioned
+- adding one new document triggers a rebuild of only the affected namespace
 
 ## Phase C: Online Serving Store
 
@@ -849,9 +866,11 @@ Exit gate:
 ## 10.2 Integration Tests
 
 - ingest a sample manual into a pack
+- ingest an additional user-supplied document into an existing namespace
 - load pack and resolve exact command
 - retrieve troubleshooting flow by mode
 - inject evidence into prompt path without user intervention
+- verify retrieval can cite content from the newly added document after pack refresh
 
 ## 10.3 Performance Tests
 
@@ -900,6 +919,7 @@ Done when:
 4. `/term` and mode-specific terminal commands can use KB-backed command generation
 5. common command lookup and small script synthesis stay within latency targets
 6. all results preserve source provenance
+7. newly supplied user documents can refresh the relevant knowledge pack without manual re-plumbing
 
 ## 13) Open Questions for Expert Review
 

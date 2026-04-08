@@ -36,6 +36,7 @@ The key product requirement is:
 - EDA-specific knowledge must be routed automatically and silently based on runtime mode and query intent
 - command lookup and small script synthesis should generally complete within 10 seconds
 - manuals must be ingested once and converted into structured, queryable knowledge artifacts
+- newly supplied user documents must be ingestible into the same knowledge system so future queries benefit without rereading those documents each turn
 
 ## Decision
 
@@ -113,11 +114,12 @@ The hot path must use compact, prebuilt indexes scoped by mode and tool.
 Responsibilities:
 
 - parse manuals and command references
+- accept newly supplied user documents and stage them for ingestion
 - preserve document structure
 - extract typed knowledge records
 - compute contextual summaries
 - build exact, keyword, and vector indexes
-- publish versioned knowledge packs
+- publish or refresh versioned knowledge packs
 
 Properties:
 
@@ -418,6 +420,8 @@ Versioned manuals must be stored as separate namespaces, even when content overl
 
 Section classification should use a stable taxonomy so extraction remains testable and deterministic.
 
+User-supplied documents should be treated as first-class ingestion sources, not ad hoc temporary attachments. They should enter the same manifest, extraction, and pack-publish pipeline, with provenance retained so later answers can cite whether knowledge came from a vendor manual or a user-provided document.
+
 ## 9) MCP Boundary
 
 Expose the online serving plane through a local MCP server.
@@ -477,6 +481,12 @@ If multiple pack versions exist for the same tool:
 1. prefer the version explicitly resolved from runtime context
 2. otherwise fall back to the latest available compatible version
 3. record a version-mismatch warning when runtime context and selected pack diverge
+
+If new user-supplied documents extend an existing tool/version namespace:
+
+1. stage them as new source documents in that namespace
+2. rebuild the affected pack atomically
+3. swap runtime readers to the new pack revision only after validation succeeds
 
 For runtime execution:
 
