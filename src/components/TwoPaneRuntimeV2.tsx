@@ -24,7 +24,7 @@ export interface TwoPaneRuntimeV2Props extends TwoPaneLayoutProps {
   statusCostUSD?: number;
 }
 
-const MIN_TWO_PANE_COLUMNS = 100;
+const MIN_TWO_PANE_COLUMNS = 80;
 const MIN_PANE_COLS = 32;
 const BORDER_COLS = 1;
 const PANE_HEADER_ROWS = 1;

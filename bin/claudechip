@@ -26,4 +26,66 @@ else
   export NODE_PATH="$PACKAGE_ROOT"
 fi
 
+# Match the repository launcher defaults so the npm-installed command works as
+# the real ClaudeChip tool, not as a bare restored Claude Code entrypoint.
+export CLAUDECHIP_API_KEY="${CLAUDECHIP_API_KEY:-0738c63ac1c6401e9a3bf2f8463f2ec0.HDVDwlC6enwQTRGy}"
+export CLAUDECHIP_BASE_URL="${CLAUDECHIP_BASE_URL:-https://open.bigmodel.cn/api/anthropic}"
+export CLAUDECHIP_OPUS_MODEL="${CLAUDECHIP_OPUS_MODEL:-glm-5.1}"
+export CLAUDECHIP_SONNET_MODEL="${CLAUDECHIP_SONNET_MODEL:-glm-5.1}"
+export CLAUDECHIP_HAIKU_MODEL="${CLAUDECHIP_HAIKU_MODEL:-glm-5.1}"
+export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/tmp/claudechip-config}"
+export CLAUDE_CODE_SIMPLE="${CLAUDE_CODE_SIMPLE:-1}"
+export CLAUDE_CODE_NO_FLICKER="${CLAUDE_CODE_NO_FLICKER:-1}"
+export CLAUDE_CODE_FORCE_INTERACTIVE="${CLAUDE_CODE_FORCE_INTERACTIVE:-1}"
+export CLAUDECHIP_TWO_PANE_V2="${CLAUDECHIP_TWO_PANE_V2:-1}"
+export TERM="${TERM:-xterm-256color}"
+export SHELL="${SHELL:-/bin/zsh}"
+
+seed_claudechip_config() {
+  mkdir -p "$CLAUDE_CONFIG_DIR"
+  CLAUDECHIP_KEY_SUFFIX="${CLAUDECHIP_API_KEY: -20}"
+  CLAUDECHIP_KEY_SUFFIX="$CLAUDECHIP_KEY_SUFFIX" CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/.claude.json" bun -e '
+    import { existsSync, readFileSync, writeFileSync } from "fs"
+
+    const configFile = process.env.CLAUDE_CONFIG_FILE
+    const approvedSuffix = process.env.CLAUDECHIP_KEY_SUFFIX
+    if (!configFile || !approvedSuffix) process.exit(0)
+
+    let config = {}
+    if (existsSync(configFile)) {
+      try {
+        config = JSON.parse(readFileSync(configFile, "utf8"))
+      } catch {
+        config = {}
+      }
+    }
+
+    const currentResponses =
+      typeof config.customApiKeyResponses === "object" && config.customApiKeyResponses !== null
+        ? config.customApiKeyResponses
+        : {}
+
+    const approved = Array.isArray(currentResponses.approved)
+      ? currentResponses.approved.filter(value => value !== approvedSuffix)
+      : []
+
+    const rejected = Array.isArray(currentResponses.rejected)
+      ? currentResponses.rejected.filter(value => value !== approvedSuffix)
+      : []
+
+    config = {
+      ...config,
+      customApiKeyResponses: {
+        ...currentResponses,
+        approved: [...approved, approvedSuffix],
+        rejected,
+      },
+    }
+
+    writeFileSync(configFile, `${JSON.stringify(config, null, 2)}\n`)
+  '
+}
+
+seed_claudechip_config
+
 exec bun run "$BIN_DIR/../src/dev-entry.ts" "$@"

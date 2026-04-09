@@ -24,7 +24,7 @@ export interface TwoPaneLayoutProps {
 }
 
 // Minimum terminal width before collapsing to single pane
-const MIN_TWO_PANE_COLUMNS = 100;
+const MIN_TWO_PANE_COLUMNS = 80;
 // Minimum columns for each pane to be usable
 const MIN_PANE_COLS = 32;
 // Visual gutter between panes
