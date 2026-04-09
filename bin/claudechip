@@ -18,4 +18,12 @@ while [ -L "$SOURCE" ]; do
 done
 
 BIN_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+PACKAGE_ROOT="$(cd -P "$BIN_DIR/.." && pwd)"
+
+if [ -n "${NODE_PATH:-}" ]; then
+  export NODE_PATH="$PACKAGE_ROOT:$NODE_PATH"
+else
+  export NODE_PATH="$PACKAGE_ROOT"
+fi
+
 exec bun run "$BIN_DIR/../src/dev-entry.ts" "$@"
