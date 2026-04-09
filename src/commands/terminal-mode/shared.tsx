@@ -294,8 +294,9 @@ export function buildTerminalGenerationMetaPrompt({
       ? `- Most recent committed terminal command: \`${status.context.recentCommand}\``
       : '- No recent committed terminal command is known.',
     '- Prefer reading terminal state first when the request depends on current context.',
-    '- Use TerminalWriteTool for interactive input to the shared terminal pane.',
+    '- Use TerminalWriteTool for interactive input to the shared terminal pane; include a newline or set pressEnter when the input should be submitted.',
     '- Use TerminalBashTool only when a bounded exec-style command is appropriate for the current mode.',
+    '- Do not leave a generated command unsubmitted and then call another terminal tool; that can corrupt the shared shell line.',
     '- If the terminal appears to be in vim or another unsafe editor-like state, do not blindly inject disruptive bytes. Explain the risk and ask before doing so.',
     '- If the mode is an EDA shell such as innovus, icc2_shell, or pt_shell, generate tool-native commands rather than generic Unix shell commands.',
     '- If you can safely generate the command, execute it instead of merely describing it.',

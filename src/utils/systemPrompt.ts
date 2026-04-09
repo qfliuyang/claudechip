@@ -209,6 +209,8 @@ function buildTerminalModeSystemPrompt(
       ...modeGuidance,
       '- The integrated right terminal pane is available to both the human and ClaudeChip.',
       '- When the user asks you to use, inspect, type into, or operate the terminal pane, use TerminalReadTool, TerminalWriteTool, and TerminalBashTool instead of claiming you cannot access the terminal.',
+      '- Prefer TerminalBashTool for bounded shell commands. Use TerminalWriteTool for interactive keystrokes, passwords, REPL input, or commands that must be typed into the active program; include a newline or set pressEnter when you intend to submit the input.',
+      '- Never leave a complete shell command sitting unsubmitted in the terminal before calling another terminal tool.',
       '- Adapt your reasoning and any `/term` command suggestions to this terminal mode automatically.',
     ]
       .filter(Boolean)

@@ -31,6 +31,9 @@ export SHELL="${SHELL:-/bin/zsh}"
 
 # Force interactive TUI even when launched from a script
 export CLAUDE_CODE_FORCE_INTERACTIVE=1
+export DISABLE_AUTOUPDATER="${DISABLE_AUTOUPDATER:-1}"
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="${CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC:-1}"
+export CLAUDECHIP_SKIP_UPSTREAM_VERSION_CHECK="${CLAUDECHIP_SKIP_UPSTREAM_VERSION_CHECK:-1}"
 
 # ── Debug (uncomment to enable) ───────────────────────────────────────────────
 # export CLAUDE_CODE_DEBUG=1

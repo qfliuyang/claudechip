@@ -9,6 +9,7 @@ const InputSchema = z.object({
 export const TerminalReadTool: Tool = {
   name: 'TerminalReadTool',
   description: 'Read recent output from the integrated terminal panel.',
+  inputSchema: InputSchema,
   inputJSONSchema: zodToJsonSchema(InputSchema),
   async call(args) {
     const limit = args.limit ?? 50;

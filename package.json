@@ -1,6 +1,6 @@
 {
   "name": "claudechip",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": false,
   "description": "EDA-aware Claude Code fork with a two-pane terminal workflow.",
   "license": "UNLICENSED",

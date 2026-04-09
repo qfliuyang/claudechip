@@ -14,6 +14,7 @@ const InputSchema = z.object({
 export const TerminalBashTool: Tool = {
   name: 'TerminalBashTool',
   description: 'Execute a command in the integrated terminal panel and return the captured output.',
+  inputSchema: InputSchema,
   inputJSONSchema: zodToJsonSchema(InputSchema),
   async call(args) {
     return terminalToolExec(args.command, { timeoutMs: args.timeout ?? 5000 });
@@ -45,4 +46,3 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
     additionalProperties: false,
   };
 }
-
