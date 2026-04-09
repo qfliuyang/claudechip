@@ -1,0 +1,26 @@
+{
+  "packId": "synopsys-pt-2023.06",
+  "vendor": "synopsys",
+  "tool": "pt",
+  "version": "2023.06",
+  "createdAt": "2026-04-08T00:00:00.000Z",
+  "embeddingModel": "local-test-model",
+  "vectorIndexKind": "sqlite-vec",
+  "sourceDocs": [
+    {
+      "docId": "pt-cmd-ref",
+      "vendor": "synopsys",
+      "tool": "pt",
+      "version": "2023.06",
+      "title": "PrimeTime Command Reference",
+      "path": "docs/pt/command-reference.md",
+      "format": "md",
+      "docType": "command_ref",
+      "sha256": "test",
+      "extractionMethod": "rule",
+      "sourceOrigin": "vendor_manual",
+      "authorityTag": "official_vendor_document",
+      "reliabilityTag": "authoritative"
+    }
+  ]
+}

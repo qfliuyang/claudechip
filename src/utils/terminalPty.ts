@@ -100,7 +100,10 @@ export function createTerminalPty(
     kill: (signal?: string) => {
       if (!exited && child.stdin.writable) {
         child.stdin.write(JSON.stringify({ type: 'kill' }) + '\n')
+        child.stdin.end()
       }
+      child.stdout.destroy()
+      child.stderr.destroy()
       try { child.kill(signal as any) } catch {}
     },
     onData: (callback: (data: string) => void) => emitter.on('data', callback),

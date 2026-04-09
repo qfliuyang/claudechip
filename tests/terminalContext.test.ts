@@ -10,8 +10,18 @@ describe('TerminalContextTracker', () => {
     expect(snapshot.mode).toBe('ssh')
     expect(snapshot.transport).toBe('ssh')
     expect(snapshot.host).toBe('eda-server')
+    expect(snapshot.sshTarget).toBe('eda-server')
     expect(snapshot.app).toBe('shell')
     expect(snapshot.promptReady).toBe(false)
+  })
+
+  test('preserves exact ssh target including user for side-channel reuse', () => {
+    const tracker = new TerminalContextTracker()
+
+    const snapshot = tracker.recordWrite('ssh EDA@192.168.112.163\r', 'human')
+
+    expect(snapshot.host).toBe('192.168.112.163')
+    expect(snapshot.sshTarget).toBe('EDA@192.168.112.163')
   })
 
   test('detects vim from command entry and output cues', () => {

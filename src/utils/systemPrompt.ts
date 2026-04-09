@@ -4,6 +4,7 @@ import {
   logEvent,
 } from '../services/analytics/index.js'
 import type { ToolUseContext } from '../Tool.js'
+import type { EdaKnowledgeContext } from '../eda-kb/EdaKnowledgeTypes.js'
 import type { TerminalContextSnapshot } from '../terminal/TerminalContext.js'
 import type { AgentDefinition } from '../tools/AgentTool/loadAgentsDir.js'
 import { isBuiltInAgent } from '../tools/AgentTool/loadAgentsDir.js'
@@ -46,6 +47,7 @@ export function buildEffectiveSystemPrompt({
   defaultSystemPrompt,
   appendSystemPrompt,
   terminalContext,
+  edaKnowledgeContext,
   overrideSystemPrompt,
 }: {
   mainThreadAgentDefinition: AgentDefinition | undefined
@@ -54,6 +56,7 @@ export function buildEffectiveSystemPrompt({
   defaultSystemPrompt: string[]
   appendSystemPrompt: string | undefined
   terminalContext?: TerminalContextSnapshot
+  edaKnowledgeContext?: EdaKnowledgeContext | null
   overrideSystemPrompt?: string | null
 }): SystemPrompt {
   if (overrideSystemPrompt) {
@@ -111,6 +114,7 @@ export function buildEffectiveSystemPrompt({
     return asSystemPrompt([
       ...defaultSystemPrompt,
       ...(buildTerminalModeSystemPrompt(terminalContext) ?? []),
+      ...(buildEdaKnowledgeSystemPrompt(edaKnowledgeContext) ?? []),
       `\n# Custom Agent Instructions\n${agentSystemPrompt}`,
       ...(appendSystemPrompt ? [appendSystemPrompt] : []),
     ])
@@ -123,6 +127,7 @@ export function buildEffectiveSystemPrompt({
         ? [customSystemPrompt]
         : defaultSystemPrompt),
     ...(buildTerminalModeSystemPrompt(terminalContext) ?? []),
+    ...(buildEdaKnowledgeSystemPrompt(edaKnowledgeContext) ?? []),
     ...(appendSystemPrompt ? [appendSystemPrompt] : []),
   ])
 }
@@ -172,6 +177,12 @@ function buildTerminalModeSystemPrompt(
               '- Prefer timing-analysis and report-debug reasoning in PrimeTime Tcl terms rather than generic shell advice.',
               '- If suggesting `/term` actions, generate commands that make sense inside `pt_shell`.',
             ]
+        : terminalContext.mode === 'tempus'
+          ? [
+              '- The user is currently working inside Cadence Tempus.',
+              '- Prefer static-timing-analysis reasoning, report inspection, and Tempus-native command suggestions instead of generic shell advice.',
+              '- If suggesting `/term` actions, generate commands that make sense inside Tempus.',
+            ]
       : terminalContext.mode === 'vim'
         ? [
             '- The right pane is currently in vim-like editor mode.',
@@ -209,4 +220,11 @@ function buildTerminalModeSystemPrompt(
       .filter(Boolean)
       .join('\n'),
   ]
+}
+
+function buildEdaKnowledgeSystemPrompt(
+  edaKnowledgeContext: EdaKnowledgeContext | null | undefined,
+): string[] | null {
+  if (!edaKnowledgeContext?.promptBlock) return null
+  return [edaKnowledgeContext.promptBlock]
 }

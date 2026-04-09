@@ -16,3 +16,8 @@ coverage/
 .claude/
 .idea/
 .vscode/
+
+# Local EDA knowledge acquisition/build artifacts. Do not commit vendor manuals
+# or generated packs; package them separately when redistribution is allowed.
+data/
+var/eda-kb/

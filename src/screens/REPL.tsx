@@ -72,6 +72,9 @@ import { useMoreRight } from '../moreright/useMoreRight.js';
 import { SpinnerWithVerb, BriefIdleStatus, type SpinnerMode } from '../components/Spinner.js';
 import { getSystemPrompt } from '../constants/prompts.js';
 import { buildEffectiveSystemPrompt } from '../utils/systemPrompt.js';
+import { buildEdaKnowledgeLookupRequest } from '../eda-kb/EdaKnowledgeContext.js';
+import { defaultEdaKnowledgeGateway } from '../eda-kb/EdaKnowledgeGateway.js';
+import { traceEdaKnowledgePromptInjection } from '../eda-kb/EdaKnowledgeTrace.js';
 import { getSystemContext, getUserContext } from '../context.js';
 import { getMemoryFiles } from '../utils/claudemd.js';
 import { startBackgroundHousekeeping } from '../utils/backgroundHousekeeping.js';
@@ -258,6 +261,21 @@ import { DesktopUpsellStartup, shouldShowDesktopUpsellStartup } from 'src/compon
 import { usePluginInstallationStatus } from 'src/hooks/notifs/usePluginInstallationStatus.js';
 import { usePluginAutoupdateNotification } from 'src/hooks/notifs/usePluginAutoupdateNotification.js';
 import { performStartupChecks } from 'src/utils/plugins/performStartupChecks.js';
+import type { TerminalContextSnapshot } from '../terminal/TerminalContext.js';
+
+async function resolveEdaKnowledgeContext(
+  messages: MessageType[],
+  terminalContext: TerminalContextSnapshot | undefined,
+) {
+  const request = buildEdaKnowledgeLookupRequest(messages, terminalContext);
+  if (!request) {
+    return null;
+  }
+
+  const context = await defaultEdaKnowledgeGateway.lookup(request);
+  traceEdaKnowledgePromptInjection(context);
+  return context;
+}
 import { UserTextMessage } from 'src/components/messages/UserTextMessage.js';
 import { AwsAuthStatusBox } from '../components/AwsAuthStatusBox.js';
 import { useRateLimitWarningNotification } from 'src/hooks/notifs/useRateLimitWarningNotification.js';
@@ -2571,6 +2589,7 @@ export function REPL({
     void (async () => {
       const toolUseContext = getToolUseContext(messagesRef.current, [], new AbortController(), mainLoopModel);
       const [defaultSystemPrompt, userContext, systemContext] = await Promise.all([getSystemPrompt(toolUseContext.options.tools, mainLoopModel, Array.from(toolPermissionContext.additionalWorkingDirectories.keys()), toolUseContext.options.mcpClients), getUserContext(), getSystemContext()]);
+      const edaKnowledgeContext = await resolveEdaKnowledgeContext(messagesRef.current, store.getState().terminalSession.context);
       const systemPrompt = buildEffectiveSystemPrompt({
         mainThreadAgentDefinition,
         toolUseContext,
@@ -2578,6 +2597,7 @@ export function REPL({
         defaultSystemPrompt,
         appendSystemPrompt,
         terminalContext: store.getState().terminalSession.context,
+        edaKnowledgeContext,
       });
       toolUseContext.renderedSystemPrompt = systemPrompt;
       const notificationAttachments = await getQueuedCommandAttachments(removedNotifications).catch(() => []);
@@ -2817,6 +2837,7 @@ export function REPL({
       } : {})
     };
     queryCheckpoint('query_context_loading_end');
+    const edaKnowledgeContext = await resolveEdaKnowledgeContext(newMessages, store.getState().terminalSession.context);
     const systemPrompt = buildEffectiveSystemPrompt({
       mainThreadAgentDefinition,
       toolUseContext,
@@ -2824,6 +2845,7 @@ export function REPL({
       defaultSystemPrompt,
       appendSystemPrompt,
       terminalContext: store.getState().terminalSession.context,
+      edaKnowledgeContext,
     });
     toolUseContext.renderedSystemPrompt = systemPrompt;
     queryCheckpoint('query_query_start');
@@ -4996,13 +5018,15 @@ export function REPL({
             const context = getToolUseContext(compactMessages, [], newAbortController, mainLoopModel);
             const appState = context.getAppState();
             const defaultSysPrompt = await getSystemPrompt(context.options.tools, context.options.mainLoopModel, Array.from(appState.toolPermissionContext.additionalWorkingDirectories.keys()), context.options.mcpClients);
+            const edaKnowledgeContext = await resolveEdaKnowledgeContext(compactMessages, appState.terminalSession.context);
             const systemPrompt = buildEffectiveSystemPrompt({
               mainThreadAgentDefinition: undefined,
               toolUseContext: context,
               customSystemPrompt: context.options.customSystemPrompt,
               defaultSystemPrompt: defaultSysPrompt,
               appendSystemPrompt: context.options.appendSystemPrompt,
-              terminalContext: appState.terminalSession.context
+              terminalContext: appState.terminalSession.context,
+              edaKnowledgeContext
             });
             const [userContext, systemContext] = await Promise.all([getUserContext(), getSystemContext()]);
             const result = await partialCompactConversation(compactMessages, messageIndex, context, {

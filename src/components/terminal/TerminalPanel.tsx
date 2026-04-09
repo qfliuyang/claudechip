@@ -6,6 +6,7 @@ import ScrollBox, { type ScrollBoxHandle } from '../../ink/components/ScrollBox.
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { usePaneWidth } from '../TwoPaneLayout.js';
 import { setTerminalPanelFocused } from '../../utils/terminalPanelFocus.js';
+import { getRemoteTunnelManager } from '../../ssh/RemoteTunnelManager.js';
 import {
   getTerminalPanelManager,
   terminalPanelWrite,
@@ -102,6 +103,7 @@ export function TerminalPanel({
   const [ansiLines, setAnsiLines] = useState<string[]>(['Waiting for shell...']);
   const scrollRef = useRef<ScrollBoxHandle>(null);
   const managerRef = useRef(getTerminalPanelManager());
+  const remoteTunnelRef = useRef(getRemoteTunnelManager());
   const surfaceRef = useRef(new TerminalSurface(120, 40));
   const { columns, rows } = useTerminalSize();
   const paneWidth = usePaneWidth();
@@ -116,6 +118,7 @@ export function TerminalPanel({
   useEffect(() => {
     const manager = managerRef.current;
     void manager.ensureStarted();
+    const remoteTunnel = remoteTunnelRef.current;
     const unsubscribe = manager.subscribe(event => {
       if (event.type === 'terminal.output') {
         setAppState(prev => {
@@ -188,12 +191,46 @@ export function TerminalPanel({
       }
     });
 
+    const unsubscribeTunnel = remoteTunnel.subscribe(event => {
+      setAppState(prev => ({
+        ...prev,
+        terminalSession: {
+          ...prev.terminalSession,
+          remoteTunnel: {
+            status: event.state.status,
+            target: event.state.target,
+            detail: event.state.detail,
+            lastConnectedAt: event.state.lastConnectedAt,
+          },
+        },
+      }));
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeTunnel();
+      remoteTunnel.disconnect('terminal panel cleanup');
       setTerminalPanelFocused(false);
       terminalWriteRef.status = 'idle';
     };
   }, [setAppState]);
+
+  useEffect(() => {
+    void remoteTunnelRef.current.ensureForContext(session.context).catch(error => {
+      setAppState(prev => ({
+        ...prev,
+        terminalSession: {
+          ...prev.terminalSession,
+          remoteTunnel: {
+            status: 'error',
+            target: session.context.sshTarget ?? session.context.host,
+            detail: error instanceof Error ? error.message : String(error),
+            lastConnectedAt: prev.terminalSession.remoteTunnel.lastConnectedAt,
+          },
+        },
+      }));
+    });
+  }, [session.context, setAppState]);
 
   useEffect(() => {
     const manager = managerRef.current;
@@ -279,8 +316,8 @@ export function TerminalPanel({
       <Box height={1} paddingX={1} borderTop borderColor="comment" data-testid="terminal-status">
         <Text dimColor wrap="truncate">
           {panelFocused
-            ? `tty:active | ${session.context.summary} | pid:${session.ptyPid ?? '-'} | ${session.status}`
-            : `tty:idle | press Ctrl+B to focus terminal | ${session.context.summary} | pid:${session.ptyPid ?? '-'} | ${session.status}`}
+            ? `tty:active | ${session.context.summary} | tunnel:${session.remoteTunnel.status}${session.remoteTunnel.target ? `@${session.remoteTunnel.target}` : ''} | pid:${session.ptyPid ?? '-'} | ${session.status}`
+            : `tty:idle | press Ctrl+B to focus terminal | ${session.context.summary} | tunnel:${session.remoteTunnel.status}${session.remoteTunnel.target ? `@${session.remoteTunnel.target}` : ''} | pid:${session.ptyPid ?? '-'} | ${session.status}`}
         </Text>
       </Box>
     </Box>

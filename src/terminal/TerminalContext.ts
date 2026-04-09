@@ -16,6 +16,7 @@ export interface TerminalContextSnapshot {
   transport: 'local' | 'ssh';
   app: string | null;
   host: string | null;
+  sshTarget: string | null;
   promptReady: boolean;
   confidence: number;
   summary: string;
@@ -47,11 +48,18 @@ function normalizeCommand(command: string): string {
   return command.replace(/\s+/g, ' ').trim();
 }
 
-function parseSshHost(command: string): string | null {
+function parseSshTarget(command: string): string | null {
   const tokens = command.split(/\s+/).filter(Boolean);
   if (tokens[0] !== 'ssh') return null;
   const target = tokens.find(token => !token.startsWith('-') && token !== 'ssh');
   return target ?? null;
+}
+
+function parseSshHost(command: string): string | null {
+  const target = parseSshTarget(command)
+  if (!target) return null
+  const withoutUser = target.includes('@') ? target.split('@').at(-1)! : target
+  return withoutUser.split(':')[0] ?? withoutUser
 }
 
 function parsePromptHost(lastLine: string): string | null {
@@ -65,6 +73,7 @@ export class TerminalContextTracker {
     transport: 'local',
     app: 'shell',
     host: null,
+    sshTarget: null,
     promptReady: true,
     confidence: 0.35,
     recentCommand: null,
@@ -85,6 +94,7 @@ export class TerminalContextTracker {
       transport: 'local',
       app: 'shell',
       host: null,
+      sshTarget: null,
       promptReady: true,
       confidence: 0.35,
       recentCommand: null,
@@ -198,6 +208,7 @@ export class TerminalContextTracker {
       next.transport = 'ssh';
       next.app = 'shell';
       next.host = parseSshHost(command);
+      next.sshTarget = parseSshTarget(command);
       next.confidence = 0.95;
       return;
     }
@@ -241,6 +252,7 @@ export class TerminalContextTracker {
       if (next.mode === 'ssh') {
         next.transport = 'local';
         next.host = null;
+        next.sshTarget = null;
       }
       next.mode = next.transport === 'ssh' ? 'ssh' : 'shell';
       next.app = 'shell';
@@ -290,6 +302,7 @@ export function terminalContextEquals(
     a.transport === b.transport &&
     a.app === b.app &&
     a.host === b.host &&
+    a.sshTarget === b.sshTarget &&
     a.promptReady === b.promptReady &&
     a.confidence === b.confidence &&
     a.summary === b.summary &&

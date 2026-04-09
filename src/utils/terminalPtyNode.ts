@@ -44,6 +44,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let pty: nodePty.IPty | null = null
   let stdinBuffer = ''
 
+  const cleanupAndExit = (code = 0) => {
+    if (pty) {
+      try {
+        pty.kill()
+      } catch {}
+      pty = null
+    }
+    process.exit(code)
+  }
+
   process.stdin.on('data', (data: Buffer) => {
     stdinBuffer += data.toString('utf-8')
     const lines = stdinBuffer.split('\n')
@@ -93,11 +103,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           }
 
           case 'kill': {
-            if (pty) {
-              pty.kill()
-              pty = null
-            }
-            process.exit(0)
+            cleanupAndExit(0)
             break
           }
         }
@@ -108,9 +114,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   })
 
   process.stdin.on('end', () => {
+    cleanupAndExit(0)
+  })
+
+  process.stdin.on('close', () => {
+    cleanupAndExit(0)
+  })
+
+  process.on('SIGINT', () => cleanupAndExit(0))
+  process.on('SIGTERM', () => cleanupAndExit(0))
+  process.on('exit', () => {
     if (pty) {
-      pty.kill()
+      try {
+        pty.kill()
+      } catch {}
+      pty = null
     }
-    process.exit(0)
   })
 }

@@ -94,6 +94,12 @@ export type TerminalSession = {
   outputBuffer: string
   lastOutputAt: number
   context: TerminalContextSnapshot
+  remoteTunnel: {
+    status: 'disconnected' | 'connecting' | 'connected' | 'error'
+    target: string | null
+    detail?: string
+    lastConnectedAt: number | null
+  }
 }
 
 export type AppState = DeepImmutable<{
@@ -522,12 +528,19 @@ export function getDefaultAppState(): AppState {
         transport: 'local',
         app: 'shell',
         host: null,
+        sshTarget: null,
         promptReady: true,
         confidence: 0.35,
         summary: 'local · shell · ready',
         recentCommand: null,
         lastHumanInputAt: null,
         lastToolInputAt: null,
+      },
+      remoteTunnel: {
+        status: 'disconnected',
+        target: null,
+        detail: undefined,
+        lastConnectedAt: null,
       },
     },
     toolPermissionContext: {

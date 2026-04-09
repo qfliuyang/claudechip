@@ -1,0 +1,10 @@
+{
+  "status": "ready",
+  "commandCount": 2,
+  "conceptCount": 1,
+  "flowCount": 1,
+  "chunkCount": 1,
+  "selectedVersion": "2023.06",
+  "availableVersions": ["2023.06"],
+  "warnings": []
+}
