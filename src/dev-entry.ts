@@ -1,6 +1,7 @@
 import pkg from '../package.json'
 import { existsSync, readdirSync, readFileSync } from 'fs'
 import { dirname, extname, join, resolve } from 'path'
+import { fileURLToPath } from 'url'
 
 type MacroConfig = {
   VERSION: string
@@ -70,10 +71,12 @@ function hasResolvableTarget(basePath: string): boolean {
   return candidates.some(candidate => existsSync(candidate))
 }
 
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
 function collectMissingRelativeImports(): MissingImport[] {
   const files: string[] = []
-  scanFiles(resolve('src'), files)
-  scanFiles(resolve('vendor'), files)
+  scanFiles(resolve(packageRoot, 'src'), files)
+  scanFiles(resolve(packageRoot, 'vendor'), files)
   const missing: MissingImport[] = []
   const seen = new Set<string>()
   const pattern =
@@ -121,7 +124,7 @@ if (args.includes('--help')) {
     console.log(`missing relative imports: ${missingImports.length}`)
     process.exit(0)
   }
-  console.log('Usage: claude [options] [prompt]')
+  console.log('Usage: claudechip [options] [prompt]')
   console.log('')
   console.log('Basic restored commands:')
   console.log('  --help       Show this help')
@@ -138,7 +141,7 @@ if (missingImports.length > 0) {
   console.log('')
   console.log('Top missing modules:')
   for (const item of missingImports.slice(0, 20)) {
-    console.log(`- ${item.importer.replace(`${process.cwd()}/`, '')} -> ${item.specifier}`)
+    console.log(`- ${item.importer.replace(`${packageRoot}/`, '')} -> ${item.specifier}`)
   }
   console.log('')
   console.log('The original app entry is still blocked by missing restored sources.')
