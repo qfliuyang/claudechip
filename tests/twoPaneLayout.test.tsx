@@ -66,7 +66,7 @@ describe('TwoPaneLayout', () => {
   })
 
   test('collapses to single pane when terminal is too narrow', () => {
-    mockColumns = 99
+    mockColumns = 79
     const tree = renderLayout({ showRightPane: true })
 
     expect(findByTestId(tree, 'two-pane-layout')).not.toBeNull()

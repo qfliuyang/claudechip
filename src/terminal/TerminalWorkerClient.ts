@@ -10,7 +10,16 @@ import {
 export interface TerminalWorkerClientOptions {
   nodePath?: string;
   scriptPath?: string;
+  loaderPath?: string;
   cwd?: string;
+}
+
+function resolveTsxLoader(): string {
+  try {
+    return import.meta.resolve('tsx/esm');
+  } catch {
+    return 'tsx/esm';
+  }
 }
 
 export class TerminalWorkerClient extends EventEmitter {
@@ -25,6 +34,7 @@ export class TerminalWorkerClient extends EventEmitter {
       scriptPath:
         options?.scriptPath ??
         new URL('./worker/TerminalWorkerMain.ts', import.meta.url).pathname,
+      loaderPath: options?.loaderPath ?? resolveTsxLoader(),
       cwd: options?.cwd ?? process.cwd(),
     };
   }
@@ -34,7 +44,7 @@ export class TerminalWorkerClient extends EventEmitter {
 
     this.child = spawn(
       this.options.nodePath,
-      ['--import', 'tsx/esm', this.options.scriptPath],
+      ['--import', this.options.loaderPath, this.options.scriptPath],
       {
         cwd: this.options.cwd,
         env: process.env,

@@ -46,6 +46,11 @@ export function abbreviateCwd(cwd: string): string {
   return `…${path.sep}${parts.slice(-2).join(path.sep)}`;
 }
 
+function getInitialFocusOwner(showRightPane: boolean): 'left' | 'right' {
+  if (!showRightPane) return 'left';
+  return process.env.CLAUDECHIP_START_FOCUSED_PANE === 'right' ? 'right' : 'left';
+}
+
 export function TwoPaneRuntimeV2({
   leftPane,
   rightPane,
@@ -56,7 +61,7 @@ export function TwoPaneRuntimeV2({
   statusCostUSD,
 }: TwoPaneRuntimeV2Props) {
   const [focusState, setFocusState] = React.useState(() =>
-    createTwoPaneFocusState(showRightPane, 'left'),
+    createTwoPaneFocusState(showRightPane, getInitialFocusOwner(showRightPane)),
   );
   const { columns, rows } = useTerminalSize();
   const geometry = computeTwoPaneGeometry({
@@ -73,6 +78,10 @@ export function TwoPaneRuntimeV2({
     setFocusState(prev => withRightPaneVisibility(prev, showRightPane));
     if (!showRightPane) setTerminalPanelFocused(false);
   }, [showRightPane]);
+
+  React.useLayoutEffect(() => {
+    setTerminalPanelFocused(showRightPane && focusState.owner === 'right');
+  }, [focusState.owner, showRightPane]);
 
   React.useLayoutEffect(() => {
     if (!showRightPane) return;

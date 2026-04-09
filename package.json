@@ -1,6 +1,6 @@
 {
   "name": "claudechip",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": false,
   "description": "EDA-aware Claude Code fork with a two-pane terminal workflow.",
   "license": "UNLICENSED",
@@ -34,7 +34,7 @@
     "build": "bun run ./src/dev-entry.ts --version",
     "pack:local": "npm pack --pack-destination ./dist",
     "test:pty": "bun test ./tests/terminalPty.test.ts",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/*/spawn-helper ~/.bun/install/cache/node-pty@*/prebuilds/*/spawn-helper 2>/dev/null || true"
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/*/spawn-helper ../node-pty/prebuilds/*/spawn-helper ~/.bun/install/cache/node-pty@*/prebuilds/*/spawn-helper 2>/dev/null || true"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
@@ -101,6 +101,7 @@
     "strip-ansi": "*",
     "supports-hyperlinks": "*",
     "tree-kill": "*",
+    "tsx": "^4.21.0",
     "type-fest": "*",
     "undici": "*",
     "url-handler-napi": "file:./shims/url-handler-napi",
@@ -113,8 +114,5 @@
     "xss": "*",
     "yaml": "*",
     "zod": "*"
-  },
-  "devDependencies": {
-    "tsx": "^4.21.0"
   }
 }

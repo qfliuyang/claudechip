@@ -30,7 +30,7 @@ describe('buildEffectiveSystemPrompt terminal mode addendum', () => {
     expect(joined).toContain('generate commands that make sense inside Innovus')
   })
 
-  test('skips terminal addendum for plain local shell context', () => {
+  test('adds terminal control guidance for plain local shell context', () => {
     const prompt = buildEffectiveSystemPrompt({
       mainThreadAgentDefinition: undefined,
       toolUseContext: { options: {} } as any,
@@ -51,6 +51,11 @@ describe('buildEffectiveSystemPrompt terminal mode addendum', () => {
       },
     })
 
-    expect(prompt).toEqual(['BASE PROMPT'])
+    const joined = prompt.join('\n\n')
+    expect(joined).toContain('# Right Pane Terminal Context')
+    expect(joined).toContain('Current classified mode: `shell`')
+    expect(joined).toContain('TerminalReadTool')
+    expect(joined).toContain('TerminalWriteTool')
+    expect(joined).toContain('TerminalBashTool')
   })
 })

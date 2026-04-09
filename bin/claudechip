@@ -38,6 +38,7 @@ export CLAUDE_CODE_SIMPLE="${CLAUDE_CODE_SIMPLE:-1}"
 export CLAUDE_CODE_NO_FLICKER="${CLAUDE_CODE_NO_FLICKER:-1}"
 export CLAUDE_CODE_FORCE_INTERACTIVE="${CLAUDE_CODE_FORCE_INTERACTIVE:-1}"
 export CLAUDECHIP_TWO_PANE_V2="${CLAUDECHIP_TWO_PANE_V2:-1}"
+export CLAUDECHIP_START_FOCUSED_PANE="${CLAUDECHIP_START_FOCUSED_PANE:-right}"
 export TERM="${TERM:-xterm-256color}"
 export SHELL="${SHELL:-/bin/zsh}"
 
@@ -86,6 +87,15 @@ seed_claudechip_config() {
   '
 }
 
+repair_node_pty_permissions() {
+  chmod +x \
+    "$PACKAGE_ROOT"/node_modules/node-pty/prebuilds/*/spawn-helper \
+    "$PACKAGE_ROOT"/../node-pty/prebuilds/*/spawn-helper \
+    "$HOME"/.bun/install/cache/node-pty@*/prebuilds/*/spawn-helper \
+    2>/dev/null || true
+}
+
 seed_claudechip_config
+repair_node_pty_permissions
 
 exec bun run "$BIN_DIR/../src/dev-entry.ts" "$@"
