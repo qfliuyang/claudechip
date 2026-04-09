@@ -20,9 +20,6 @@ export CLAUDECHIP_SONNET_MODEL="${CLAUDECHIP_SONNET_MODEL:-glm-5.1}"
 export CLAUDECHIP_HAIKU_MODEL="${CLAUDECHIP_HAIKU_MODEL:-glm-5.1}"
 export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/tmp/claudechip-config}"
 
-# Disable OAuth/login flow — use API key directly
-export CLAUDE_CODE_SIMPLE=1
-
 # Enable fullscreen TUI mode (sticky-scroll, bottom-pinned messages)
 # Without this, isFullscreenEnvEnabled() returns false for non-ant users
 # and messages render from top instead of bottom.
